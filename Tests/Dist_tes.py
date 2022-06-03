@@ -39,6 +39,6 @@ for i in range(100):
     s.append(random.randrange(1,10))
 df=pd.Series(s)
 print(s)
-print("dist:\n",distribution_df(df,parts=10))
-print("total:",distribution_df(df,parts=8).sum())
+print("dist:\n",distribution_df(df,parts=10).to_string())
+print("total:",distribution_df(df,parts=8).to_string())
 

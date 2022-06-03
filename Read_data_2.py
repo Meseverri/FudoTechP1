@@ -226,17 +226,21 @@ def getTrueIsHigh(isHigh1, isHigh2):
 
 class Candels:
     def __init__(self,Path_file,Sep=","):
-      
+        
         
         self.candels=pd.read_csv(Path_file,sep=Sep)
         self.candels["DateTime"]=self.candels["Date"]+self.candels[" Time"]
         self.candels["Date"]=pd.to_datetime(self.candels["DateTime"])
-        self.Volume=self.candels.loc[:," Volume":" AskVolume"]
+        self.candels["Mean"]=(self.candels[" Open"]+self.candels[" Last"]+self.candels[" High"]+self.candels[" Low"])/4
+        self.candels["Delta"]=self.candels[" BidVolume"]-self.candels[" AskVolume"]
+        self.candels["#trades/volume ratio"]=self.candels[" NumberOfTrades"]/self.candels[" Volume"]
+        self.Volume=self.candels.loc[:,["Date","Mean"," Volume"," NumberOfTrades"," BidVolume"," AskVolume","Delta","#trades/volume ratio"]]
+        
         # weekMonth = self.calendar()
         # self.candels["Week day"]=weekMonth["Week day"]
         # self.candels["Month"]=weekMonth["Month"]
         
-        self.candels=self.candels.drop(["DateTime"," Time"," Volume"," NumberOfTrades"," BidVolume"," AskVolume"],axis=1)
+        self.candels=self.candels.drop(["DateTime"," Time"," Volume"," NumberOfTrades"," BidVolume"," AskVolume","Delta","#trades/volume ratio"],axis=1)
        
     def calendar(self):
         WL=[]
@@ -265,7 +269,7 @@ class Candel_study:
         self.TrendLines=Trend_lines(self.Pivots_table)
         k=datetime.now()-n
         print(f"POI table setion {self.Setion} took: ",k)
-        # self.dropVolume=Candels.dropVolume
+        self.Volume=Candels.Volume
         
         # No se usa mucho por ahora y ademas hay que considerar el caso "="
         self.df["isBull"]=self.df[" Last"]>self.df[" Open"]
@@ -298,13 +302,19 @@ class Candel_study:
         ret=[Datetime,Datetime.strftime("%Y"),Datetime.strftime("%U"),Datetime.strftime("%b"),Datetime.hour,Datetime.strftime("%A"),Th,Tl,P0,Ph,Pl,PC]
       
         if Tl>Th:
+            ret.append((Tl-Th).total_seconds())
             ret.append(-(Ph-Pl))
-            ret.append(Tl-Th)
+            ret.append(P0-Pl)
+            ret.append(Ph-PC)
             ret.append(Tl>Th)
             
+
+            
         else:
+            ret.append((Th-Tl).total_seconds())
             ret.append((Ph-Pl))
-            ret.append(Th-Tl)
+            ret.append(P0-Ph)
+            ret.append(Pl-PC)
             ret.append(Tl>Th)
        
         RET=pd.Series(ret,["Date",
@@ -319,8 +329,10 @@ class Candel_study:
             "P High",
             "P Low",
             "P Close",
-            "variacion PH-PL",
             "variacion TH-TL",
+            "variacion PH-PL",
+            "Open to POI",
+            "POI to Close",
             "High first"])
             
         return RET

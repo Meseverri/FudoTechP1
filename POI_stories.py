@@ -5,7 +5,7 @@ from datetime import datetime,timedelta
 import pandas as pd
 
 n=datetime.now()
-EURUSD_candels=RD.Candels("6EM22-CME.scid_BarData.txt",dropVolume=True)
+EURUSD_candels=RD.Candels("6EM22-CME.scid_BarData.txt")
 
 EURUSD_Day=RD.Candel_study(EURUSD_candels,Setions="Day",X=1,Y=28*2)#1 set,28 dias 2pois
 EURUSD_Original=RD.Candel_study(EURUSD_candels,X=1,Y=392)#7 sesiones al dia 28 dias 2 pois
@@ -18,12 +18,12 @@ POI_R1=EURUSD_R1.sample_DF
 POI_R2=EURUSD_R2.sample_DF
 
 k=datetime.now()
-
+EURUSD_candels.Volume.to_csv("EURUSD Volume.csv")
 POI_Original.to_csv("EURUSD POI Original.csv")
 POI_Day.to_csv("EURUSD POI Day.csv")
 POI_R1.to_csv("EURUSD POI R1.csv")
 POI_R2.to_csv("EURUSD POI R2.csv")
 
-print(n-k)
+print(k-n)
 
 
