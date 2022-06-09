@@ -555,6 +555,56 @@ class Candel_study:
     def __str__(self):
         return str(self.df)
 
+def get_week(day):
+    if day < 8:
+        return 1
+    if day < 15:
+        return 2
+    if day < 22:
+        return 3
+    
+    return 4
+    
+
+class RN_study:
+
+
+
+    def __init__(self,path="", sep=","):
+       
+        self.df = pd.read_csv(path, sep=sep)
+        self.df["Date"]=pd.to_datetime(self.df["Date"])
+        self.df.drop([" Time", " High", " Low", " Volume", " Last"],axis=1, inplace=True)
+        self.df = self.df.groupby("Date").agg({
+                        ' Open': 'first',
+                        ' BidVolume': 'sum',
+                        ' AskVolume': 'sum',
+                        ' NumberOfTrades': 'sum'
+        })
+        self.df[" week"] = [get_week(x.day) for x in self.df.index]
+        self.df[" week_day"] = [x.weekday() for x in self.df.index]
+
+        print(self.df.iloc[15:35,:])
+
+  
+    
+
+
+        
+    
+
+
+    def save_data(self,path,dataframe):
+        pd.to_csv(path)
+        print(f"saved at {path}")
+
+ 
+    def __str__(self):
+        return str(self.df)
+
+
+
+
 class Ticks:
     def __init__(self,Path_file,Sep="\t"):
         self.ticks=pd.read_csv(Path_file,sep=Sep)
