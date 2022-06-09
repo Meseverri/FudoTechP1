@@ -5,6 +5,7 @@ from datetime import datetime,timedelta
 import pandas as pd
 
 
+
 POI_Day=pd.read_csv("EURUSD POI Day.csv",index_col=0)
 POI_Original=pd.read_csv("EURUSD POI Original.csv",index_col=0)
 POI_R1=pd.read_csv("EURUSD POI R1.csv",index_col=0)
