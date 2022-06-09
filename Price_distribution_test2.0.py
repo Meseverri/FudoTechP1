@@ -11,6 +11,11 @@ def intersection(lst1, lst2):
     return lst3
 
 #input una lista otput dataframe de distribuciones
+#data: Pandas dataframe
+# x_ax: the column witch contains the main random variable
+# frequency=True: True if you only need to count the number of times, False if volume is need 
+# y_ax=None, 
+# bins=100
 def distribution_df(data,x_ax,frequency=True,y_ax=None, bins=100):
     data=data.round(6)
     minimo=data[x_ax].min()
