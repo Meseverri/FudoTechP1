@@ -584,6 +584,8 @@ class RN_study:
         self.df[" week"] = [get_week(x.day) for x in self.df.index]
         self.df[" week_day"] = [x.weekday() for x in self.df.index]
 
+        
+
         print(self.df.iloc[15:35,:])
 
   
