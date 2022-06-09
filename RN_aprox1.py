@@ -62,3 +62,9 @@ Atributo a predecir:
 
 df = RN_study("6EM22-CME.scid_BarData.txt")
 """gerardo"""
+
+
+
+afkbsadfkbajdsbfalbdasf
+adfsdlfkbljasbfafbksbkabsf
+asaskdbkasdkasdbaksdbkh 
