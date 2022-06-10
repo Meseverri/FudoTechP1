@@ -9,13 +9,13 @@ Informacion referida a temporalidad "actual" se refiere a la vela recien cerrada
 Informacion referida a temporalidad "en curso" se refiere a la vela que no ha cerrado (pensando en tiempo real)
 
 Atributos a usar para la RN
--Precio de apertura
--Bid de la vela actual
--Ask de la vela actual
--Numero de trades
+-Precio de apertura   +
+-Bid de la vela actual +
+-Ask de la vela actual +
+-Numero de trades +
 Derivados de Fechas para la instancia actual:
-    -Week [Primera semana ,Segunda semana ,Tercera semana,cuarta semana]
-    -Dia de la semana (nominal lunes (0), martes (1), etc)
+    -Week [Primera semana ,Segunda semana ,Tercera semana,cuarta semana] +
+    -Dia de la semana (nominal lunes (0), martes (1), etc) +
 
 Atributos de n sesiones hacia atras con las que la instancia actual esta reaccionando:
     Derivados de Fechas para cada sesion:

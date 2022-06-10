@@ -22,13 +22,16 @@ def distribution_df(data,x_ax,frequency=True,y_ax=None, bins=100):
     maximo=data[x_ax].max()
     rango=maximo-minimo
     interval_size=rango/bins
-    Index=[]
+    Ranges=[]
+    #Index_DF lista con el punto medio del intervalo de frequencia
+    #Index_DF=[]
     dist_data=[]
     
     for k in range(bins+1):    
-        Index.append(round(minimo+k*interval_size,7))
+        Ranges.append(round(minimo+k*interval_size,7))
+        #Index_DF.append(round(minimo+(2*k+1)*interval_size/2,7))
     count=1
-    for i in Index:  
+    for i in Ranges:  
         #a=set(data[i<=data]).intersection(set(data[data<(i+count*interval_size)]))
         if count==bins:
             # a=intersection(data[i<=data[x_ax]][x_ax].tolist(),data[data[x_ax]<=(i+interval_size)][x_ax].tolist())
@@ -46,10 +49,22 @@ def distribution_df(data,x_ax,frequency=True,y_ax=None, bins=100):
             count+=1
     print(np.sum(dist_data))
 
-    dist=pd.DataFrame({"Index":Index,f"Frequencia {y_ax} relativa":dist_data})
-    dist[f"Frequencia {y_ax} relativa"]=dist[f"Frequencia {y_ax} relativa"]/np.sum(dist_data)
+    dist=pd.DataFrame({"Index":Ranges,f"Frequencia {y_ax}":dist_data})
+    dist[f"Frequencia {y_ax} relativa"]=dist[f"Frequencia {y_ax}"]/np.sum(dist_data)
     dist["Interval Size"]=interval_size
+    dist["V*P"]=dist[f"Frequencia {y_ax} relativa"]*dist["Index"]
+    dist["V*P^2"]=dist[f"Frequencia {y_ax} relativa"]*dist["Index"]**2
+
     return dist
+
+def frequency_inside(inf,sup,dist_df):
+    
+    df=dist_df[dist_df["Index"]>inf][dist_df["Index"]<sup]
+    Fr=df.iloc[:,2]
+    return Fr.sum() 
+
+
+
 n=datetime.now()
 EURUSD_candels=RD.Candels("6EM22-CME.scid_BarData.txt")
 POI_Day=pd.read_csv("EURUSD POI DAY.csv",index_col=0)
@@ -68,7 +83,7 @@ POI_Day["T Low"]=pd.to_datetime(POI_Day["T Low"])
 EURUSD=EURUSD_candels.candels
 EURUSD_VOL=EURUSD_candels.Volume
 #getting the week to study
-T0=datetime(2021,2,28,18)
+T0=datetime(2020,3,1,18)
 T1=T0+timedelta(days=1)
 T2=T1+timedelta(days=1)
 T3=T2+timedelta(days=1)
@@ -115,8 +130,11 @@ frequencia_lunes_media=Price_dist_MONDAY["Frequencia  Volume relativa"].mean()
 frequencia_martes_media=Price_dist_TUESDAY["Frequencia  Volume relativa"].mean()
 frequencia_miercoles_media=Price_dist_WEDNESDAY["Frequencia  Volume relativa"].mean()
 
+frequencia_lunes_Bids_media=Price_dist_MONDAY_Bid["Frequencia  BidVolume relativa"].mean()
+frequencia_lunes_Ask_media=Price_dist_MONDAY_Ask["Frequencia  AskVolume relativa"].mean()
 
-print(MONDAY_HIGH_FREQUENCIES)
+
+print(MONDAY_HIGH_FREQUENCIES.to_string())
 print("total high frequencies:\n",MONDAY_HIGH_FREQUENCIES["Frequencia  Volume relativa"].sum())
 print("total:\n",Price_dist_MONDAY["Frequencia  Volume relativa"].sum())
 
@@ -128,15 +146,18 @@ fig.suptitle(f"Monday({str(T1)})")
 # plt.bar([" AskVolume $"," BidVolume $"],[volume_profile[" AskVolume $"].sum(),volume_profile[" BidVolume $"].sum()])
 Price_dist_MONDAY.plot.barh(x="Index",y="Frequencia  Volume relativa",ax=axes[0,0])
 axes[0,0].axvline(x=frequencia_lunes_media, color='r', linestyle='-')
+axes[0,1].axhline(y=Price_dist_MONDAY["V*P"].sum(), color='r', linestyle='-')
 
 plt.sca(axes[0,0])
 plt.yticks(np.arange(EURUSD_LOCAL_MONDAY["Mean"].min(),EURUSD_LOCAL_MONDAY["Mean"].max(),(EURUSD_LOCAL_MONDAY["Mean"].max()-EURUSD_LOCAL_MONDAY["Mean"].min())/2),
             np.arange(EURUSD_LOCAL_MONDAY["Mean"].min(),EURUSD_LOCAL_MONDAY["Mean"].max(),(EURUSD_LOCAL_MONDAY["Mean"].max()-EURUSD_LOCAL_MONDAY["Mean"].min())/2))
 
 EURUSD_LOCAL_MONDAY.plot(y="Mean",ax=axes[0,1])
+axes[0,1].axhline(y=Price_dist_MONDAY["V*P"].sum(), color='r', linestyle='-')
 Price_dist_MONDAY_Bid.plot.barh(x="Index",y="Frequencia  BidVolume relativa",ax=axes[1,0])
+axes[1,0].axvline(x=frequencia_lunes_Bids_media, color='r', linestyle='-')
 Price_dist_MONDAY_Ask.plot.barh(x="Index",y="Frequencia  AskVolume relativa",ax=axes[1,1])
-
+axes[1,1].axvline(x=frequencia_lunes_Ask_media, color='r', linestyle='-')
 
 # fig, axes = plt.subplots(nrows=2, ncols=2)
 # fig.suptitle(f"Tuesday({str(T2)})")
