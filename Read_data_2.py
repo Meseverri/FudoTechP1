@@ -281,9 +281,6 @@ class Candel_study:
 
         POI_sample_set=self.df[((self.df["Date"]>=Datetime) & (self.df["Date"]<Datetime+delta1))]
 
-        H1=POI_sample_set[" High"].max()
-        H0=POI_sample_set[" Low"].min()
-
         # POI_sample_set["Alpha High"]=alpha(POI_sample_set[" High"],H0,H1)
         # POI_sample_set["Alpha Low"]=alpha(POI_sample_set[" Low"],H0,H1)
         
@@ -573,22 +570,144 @@ class RN_study:
     def __init__(self,path="", sep=","):
        
         self.df = pd.read_csv(path, sep=sep)
+
+        self.df[" DateTime"]=pd.to_datetime(self.df["Date"]+self.df[" Time"])
         self.df["Date"]=pd.to_datetime(self.df["Date"])
-        self.df.drop([" Time", " High", " Low", " Volume", " Last"],axis=1, inplace=True)
-        self.df = self.df.groupby("Date").agg({
+
+        self.traning_df = self.df.copy()
+        self.df["Date"] = self.df[" DateTime"]
+        self.df.drop([" DateTime"," Time"],axis=1, inplace=True)
+        self.traning_df.drop([" DateTime"," Time", " High", " Low", " Volume", " Last"],axis=1, inplace=True)
+        self.traning_df = self.traning_df.groupby("Date").agg({
                         ' Open': 'first',
                         ' BidVolume': 'sum',
                         ' AskVolume': 'sum',
                         ' NumberOfTrades': 'sum'
         })
-        self.df[" week"] = [get_week(x.day) for x in self.df.index]
-        self.df[" week_day"] = [x.weekday() for x in self.df.index]
+        self.traning_df[" week"] = [get_week(x.day) for x in self.traning_df.index]
+        self.traning_df[" week_day"] = [x.weekday() for x in self.traning_df.index]
 
-        
+        for indexDateTime  in self.traning_df.index:
+            sesion_datetime = indexDateTime - timedelta(days=1)
+            sesion_datetime = sesion_datetime.replace(hour=18,minute=0)
+
+            try:
+                self.create_sesions_columns(sesion_datetime, indexDateTime)
+            except IndexError:
+                pass
+
 
         print(self.df.iloc[15:35,:])
+        print(self.traning_df.iloc[15:35,:].dropna())
+
+    def alpha(p,p0,p1):
+        P=p-p0
+        return P/(p1-p0)
+
+    def period_study(self,Datetime,n):
+        delta1=timedelta(hours=n)
+
+        return self.df[((self.df["Date"]>=Datetime) & (self.df["Date"]<Datetime+delta1))]
+  
+    def POIset(self,Datetime,n, Sesion, indexDateTime):
+
+        self.traning_df.loc[indexDateTime,f" {Sesion} - week"] = int(get_week(Datetime.day))
+        self.traning_df.loc[indexDateTime,f" {Sesion} - week_day"] = int(Datetime.weekday())
+
+        POI_df=self.period_study(Datetime,n=n).copy()
+        Ph=POI_df[" High"].max()
+        Pl=POI_df[" Low"].min()
+        POI_df[" Alpha High"]=alpha(POI_df[" High"],Pl,Ph)
+        POI_df[" Alpha Low"]=alpha(POI_df[" Low"],Pl,Ph)
+        Th=POI_df[POI_df[" Alpha High"]==1].iat[0,0]
+        Tl=POI_df[POI_df[" Alpha Low"]==0].iat[0,0]
+        To=Datetime
+
+        
+        if Tl<Th: # Primer POI = Low
+            self.traning_df.loc[indexDateTime,f" {Sesion} - Var Segs Open-POI1"] = (Tl-To).total_seconds()
+            self.traning_df.loc[indexDateTime,f" {Sesion} - Var Segs POI1-POI2"] = (Th-Tl).total_seconds()
+            # self.traning_df.loc[indexDateTime,f" {Sesion} - Var Segs POI2-Close"] =
+
+        else: # Primer POI = High
+            self.traning_df.loc[indexDateTime,f" {Sesion} - Var Segs Open-POI1"] = (Th-To).total_seconds()
+            self.traning_df.loc[indexDateTime,f" {Sesion} - Var Segs POI1-POI2"] = (Tl-Th).total_seconds()
+
+
+        # P0=POI_df[" Open"].iloc[0]
+        # PC=POI_df[" Last"].iloc[-1]
+        # Ph=POI_df[" High"].max()
+        # Pl=POI_df[" Low"].min()
+        # POI_df["Alpha High"]=alpha(POI_df[" High"],Pl,Ph)
+        # POI_df["Alpha Low"]=alpha(POI_df[" Low"],Pl,Ph)
+        # Tl=POI_df[POI_df["Alpha Low"]==0].loc[:,["Date"]].iat[0,0]
+        # Th=POI_df[POI_df["Alpha High"]==1].loc[:,["Date"]].iat[0,0]
+        # ret=[Datetime,Datetime.strftime("%Y"),Datetime.strftime("%U"),Datetime.strftime("%b"),Datetime.hour,Datetime.strftime("%A"),Th,Tl,P0,Ph,Pl,PC]
+      
+        # if Tl>Th:
+        #     ret.append((Tl-Th).total_seconds())
+        #     ret.append(-(Ph-Pl))
+        #     ret.append(P0-Pl)
+        #     ret.append(Ph-PC)
+        #     ret.append(Tl>Th)
+        # else:
+        #     ret.append((Th-Tl).total_seconds())
+        #     ret.append((Ph-Pl))
+        #     ret.append(P0-Ph)
+        #     ret.append(Pl-PC)
+        #     ret.append(Tl>Th)
+       
+        # RET=pd.Series(ret,["Date",
+        #     "Year",
+        #     "Week",
+        #     "Month",
+        #     "START hour",
+        #     "Week day",
+        #     "T High",
+        #     "T Low",
+        #     "P Open",
+        #     "P High",
+        #     "P Low",
+        #     "P Close",
+        #     "variacion TH-TL",
+        #     "variacion PH-PL",
+        #     "Open to POI",
+        #     "POI to Close",
+        #     "High first"])
+            
+        # return RET
 
   
+    def create_sesions_columns (self, START, indexDateTime):
+        P1=18
+       
+        S1=7
+        S2=4
+        S3=6
+        S4=7
+
+        if START.hour == P1:
+
+            # Sidney para para raul
+            Set1=self.POIset(START,S1,"Sidney", indexDateTime)
+            START=START+timedelta(hours=S1)
+
+            # # Tokio para para raul
+            # Set2=self.POIset(START,S2,"Tokio", indexDateTime)
+            # START=START+timedelta(hours=S2)
+
+            # # Londres para para raul
+            # Set3=self.POIset(START,S3,"Londres", indexDateTime)
+            # START=START+timedelta(hours=S3)
+
+            # # NY para para raul
+            # Set4=self.POIset(START,S4,"Ny", indexDateTime)
+            # START=START+timedelta(hours=S4)
+            
+        else:
+            raise Exception(f"Hour datatime not correct, must be {P1}")
+
+
     
 
 
