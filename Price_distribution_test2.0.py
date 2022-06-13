@@ -47,7 +47,7 @@ def distribution_df(data,x_ax,frequency=True,y_ax=None, bins=100):
         elif frequency!=True:
             dist_data.append(a[y_ax].sum())
             count+=1
-    print(np.sum(dist_data))
+    
 
     dist=pd.DataFrame({"Index":Ranges,f"Frequencia {y_ax}":dist_data})
     dist[f"Frequencia {y_ax} relativa"]=dist[f"Frequencia {y_ax}"]/np.sum(dist_data)
