@@ -9,18 +9,21 @@ Informacion referida a temporalidad "actual" se refiere a la vela recien cerrada
 Informacion referida a temporalidad "en curso" se refiere a la vela que no ha cerrado (pensando en tiempo real)
 
 Atributos a usar para la RN
--Precio de apertura
--Bid de la vela actual
--Ask de la vela actual
--Numero de trades
+-Precio de apertura   +
+-Bid de la vela actual +
+-Ask de la vela actual +
+-Numero de trades +
 Derivados de Fechas para la instancia actual:
-    -Week [Primera semana ,Segunda semana ,Tercera semana,cuarta semana]
-    -Dia de la semana (nominal lunes (0), martes (1), etc)
+    -Week [Primera semana ,Segunda semana ,Tercera semana,cuarta semana] +
+    -Dia de la semana (nominal lunes (0), martes (1), etc) +
 
 Atributos de n sesiones hacia atras con las que la instancia actual esta reaccionando:
     Derivados de Fechas para cada sesion:
         -Week [Primera semana ,Segunda semana ,Tercera semana,cuarta semana]
         -Dia de la semana (nominal lunes (0), martes (1), etc)
+        -Hora de apertura formato 24h
+        -Primer POI en overlap
+        -Segundo POI
         -Variacion en segundos desde apertura hasta primer POI
         -Variacion en segundos del primer POI al segundo POI
         -Variacion en segundos del segundo POI al close
@@ -38,8 +41,11 @@ Atributos de n sesiones hacia atras con las que la instancia actual esta reaccio
 
     -Media ponderada hasta el precio final de la sesion
     -Desviacion tipica ponderada hasta el final de la sesion
-    -K+ distancia del precio actual por arriba de la media muestral (Se van calculando la media ponderada y la desviacion tipica acumuladas para cada instancia de la sesion) 
-    -k- distancia del precio actual por debajo de la media muestral (Se van calculando la media ponderada y la desviacion tipica acumuladas para cada instancia de la sesion)
+    -K+ distancia del precio en curso por arriba de la media muestral (Se van calculando la media ponderada y la desviacion tipica acumuladas para cada instancia de la sesion) 
+    -k- distancia del precio en curso por debajo de la media muestral (Se van calculando la media ponderada y la desviacion tipica acumuladas para cada instancia de la sesion)
+    -K+ veces la desviacion tipica por arriba de la media muestral( la media y la desviacion estandar son constantes)
+    -K- veces la desviacion tipica por abajo de la media muestral( la media y la desviacion estandar son constantes)
+
     
     -Bids acumulados de la sesion (total de bids)
     -Asks acumulados de la sesion (total de asks)
