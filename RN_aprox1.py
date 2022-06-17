@@ -41,10 +41,10 @@ Atributos de n sesiones hacia atras con las que la instancia actual esta reaccio
     -frecuencia del entorno de valor -2 en la actual + 
     -frecuencia del entorno de valor -3 en la actual -
 
-    -K+ distancia del precio en curso por arriba de la media muestral (Se van calculando la media ponderada y la desviacion tipica acumuladas para cada instancia de la sesion) 
-    -k- distancia del precio en curso por debajo de la media muestral (Se van calculando la media ponderada y la desviacion tipica acumuladas para cada instancia de la sesion)
-    -K+ veces la desviacion tipica por arriba de la media muestral( la media y la desviacion estandar son constantes)
-    -K- veces la desviacion tipica por abajo de la media muestral( la media y la desviacion estandar son constantes)
+    -K+ distancia del precio en curso por arriba de la media muestral (Se van calculando la media ponderada y la desviacion tipica acumuladas para cada instancia de la sesion)  +
+    -k- distancia del precio en curso por debajo de la media muestral (Se van calculando la media ponderada y la desviacion tipica acumuladas para cada instancia de la sesion) +
+    -K+ veces la desviacion tipica por arriba de la media muestral( la media y la desviacion estandar son constantes) +
+    -K- veces la desviacion tipica por abajo de la media muestral( la media y la desviacion estandar son constantes) +
 
     
     -Bids acumulados de la sesion (total de bids) +

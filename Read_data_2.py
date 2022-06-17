@@ -282,11 +282,6 @@ def distribution_df(data,x_ax,frequency=True,y_ax=None, bins=100):
 
     return dist
 
-def frequency_inside(inf,sup,dist_df):
-    
-    df=dist_df[dist_df["Index"]>inf][dist_df["Index"]<sup]
-    Fr=df.iloc[:,2]
-    return Fr.sum() 
 
 class Candels:
     def __init__(self,Path_file,Sep=","):
@@ -639,15 +634,92 @@ def frequency_inside(inf,sup,dist_df):
     Fr=df.iloc[:,2]
     return Fr.sum() 
 
+def calculo_k_medio (df_in, bins, Weighted_mean_fixed, Std_fixed):
+
+    df_in.drop([" NumberOfTrades", " Alpha High", " Alpha Low", " Hash"], axis=1)
+    df_in.groupby(df_in.index//bins).agg({
+                        'Date': 'first',
+                        ' Open': 'first',
+                        ' High': 'max',
+                        ' Low': 'min',
+                        ' Last': 'last',
+                        ' Volume': 'sum',
+                        ' BidVolume': 'sum', 
+                        ' AskVolume': 'sum',
+    })
+    df_in[' Hash']=(df_in[" Open"]+df_in[" Last"]+df_in[" High"]+df_in[" Low"])/4
+
+
+
+    df_in[" P*V"]=df_in[" Volume"] * df_in[" Hash"]
+    df_in[" Acum P*V"]=df_in[" P*V"].cumsum()
+    df_in[" Acum Volume"]=df_in[" Volume"].cumsum()
+    df_in[" Weighted Mean"]=df_in[" Acum P*V"] / df_in[" Acum Volume"]
+    df_in[" P**2*V"]=df_in[" Volume"] * (df_in[" Hash"]**2)
+    df_in[" Acum P**2*V"]=df_in[" P**2*V"].cumsum()
+    df_in[" Weighted Mean 2"]=(df_in[" Acum P**2*V"])/df_in[" Acum Volume"]
+    df_in[" Std"]= (df_in[" Weighted Mean 2"] - df_in[" Weighted Mean"]**2)**(1/2)
+    df_in[" k"]=(df_in[" Hash"] - df_in[" Weighted Mean"])/df_in[" Std"]
+    df_in[" k Fixed"]=(df_in[" Hash"] - Weighted_mean_fixed)/Std_fixed
+
+    kpos_movil=df_in[df_in[" k"]>0][" k"]
+    mean_kpos_movil = kpos_movil.mean()
+    over_kpos_movil_bids=df_in[df_in[" k"]>mean_kpos_movil][" BidVolume"].sum()
+    over_kpos_movil_asks=df_in[df_in[" k"]>mean_kpos_movil][" AskVolume"].sum()
+
+
+    
+
+    kneg_movil=df_in[df_in[" k"]<0][" k"]
+    mean_kneg_movil = kneg_movil.mean()
+    above_kpos_movil_bids=df_in[df_in[" k"]<mean_kneg_movil][" BidVolume"].sum()
+    above_kpos_movil_asks=df_in[df_in[" k"]<mean_kneg_movil][" AskVolume"].sum()
+
+
+
+    kpos_fixed=df_in[df_in[" k Fixed"]>0][" k Fixed"]
+    mean_kpos_fixed = kpos_fixed.mean()
+    over_kpos_fixed_bids=df_in[df_in[" k Fixed"]>mean_kpos_fixed][" BidVolume"].sum()
+    over_kpos_fixed_asks=df_in[df_in[" k Fixed"]>mean_kpos_fixed][" AskVolume"].sum()
+
+    kneg_fixed=df_in[df_in[" k Fixed"]<0][" k Fixed"]
+    mean_kneg_fixed = kneg_fixed.mean()
+    above_kpos_fixed_bids=df_in[df_in[" k Fixed"]<mean_kneg_fixed][" BidVolume"].sum()
+    above_kpos_fixed_asks=df_in[df_in[" k Fixed"]<mean_kneg_fixed][" AskVolume"].sum()
+
+    print(mean_kpos_movil, " --- ",type(mean_kpos_movil), " --- " ,df_in[" Std"].min())
+    if np.isinf(mean_kpos_movil) is float('inf'):
+        print(df_in)
+
+
+
+    return {
+        ' k+ Movil':mean_kpos_movil,
+        ' k- Movil':mean_kneg_movil,
+        ' k+ Fixed':mean_kpos_fixed,
+        ' k- Fixed':mean_kneg_fixed,
+        ' Bids Over k+ Movil':over_kpos_movil_bids,
+        ' Asks Over k+ Movil':over_kpos_movil_asks,
+        ' Bids Above k- Movil':above_kpos_movil_bids,
+        ' Asks Above k- Movil':above_kpos_movil_asks,
+        ' Bids Over k+ Fixed':over_kpos_fixed_bids,
+        ' Asks Over k+ Fixed':over_kpos_fixed_asks,
+        ' Bids Above k- Fixed':above_kpos_fixed_bids,
+        ' Asks Above k- Fixed':above_kpos_fixed_asks,
+    }
+
+
+
+    
+
+
 class RN_study:
 
     def __init__(self,path="", sep=","):
        
         self.df = pd.read_csv(path, sep=sep)
-
         self.df[" DateTime"]=pd.to_datetime(self.df["Date"]+self.df[" Time"])
         self.df["Date"]=pd.to_datetime(self.df["Date"])
-
         self.traning_df = self.df.copy()
         self.df["Date"] = self.df[" DateTime"]
         self.df.drop([" DateTime"," Time"],axis=1, inplace=True)
@@ -690,7 +762,8 @@ class RN_study:
       
     def POIset(self,Datetime,n, Sesion, indexDateTime):
         POI_df=self.period_study(Datetime,n=n).copy()
-        POI_df[" Mean"]=(POI_df[" Open"]+POI_df[" Last"]+POI_df[" High"]+POI_df[" Low"])/4
+        POI_df.reset_index(drop=True, inplace=True)
+        POI_df[" Hash"]=(POI_df[" Open"]+POI_df[" Last"]+POI_df[" High"]+POI_df[" Low"])/4
 
         To=Datetime #Tiempo de apertura
         Po=POI_df[" Open"].iloc[0]
@@ -699,10 +772,8 @@ class RN_study:
 
         Ph=POI_df[" High"].max()
         Pl=POI_df[" Low"].min()
-
         POI_df[" Alpha High"]=alpha(POI_df[" High"],Pl,Ph)
         POI_df[" Alpha Low"]=alpha(POI_df[" Low"],Pl,Ph)
-
         Th=POI_df[POI_df[" Alpha High"]==1].iat[0,0]
         Tl=POI_df[POI_df[" Alpha Low"]==0].iat[0,0]
 
@@ -710,24 +781,30 @@ class RN_study:
         Asks_acum = POI_df[" AskVolume"].sum()
 
         #Sesion actual entorno de valor
-        Price_dist=distribution_df(POI_df,x_ax=" Mean",frequency=False,y_ax=" Volume",bins=300)
+        Price_dist=distribution_df(POI_df,x_ax=" Hash",frequency=False,y_ax=" Volume",bins=300)
         Volume_stats=stats_setion_Series(Price_dist)
         Std = Volume_stats["Std"] 
+        Weigthed_mean = Volume_stats["Media"]
 
         #Sesion actual -1 dia entorno de valor
         POI_df_1 = self.period_study(Datetime-timedelta(days=1),n=n).copy()
-        POI_df_1[" Mean"]=(POI_df_1[" Open"]+POI_df_1[" Last"]+POI_df_1[" High"]+POI_df_1[" Low"])/4
-        Price_dist_1=distribution_df(POI_df_1,x_ax=" Mean",frequency=False,y_ax=" Volume",bins=300)
+        POI_df_1[" Hash"]=(POI_df_1[" Open"]+POI_df_1[" Last"]+POI_df_1[" High"]+POI_df_1[" Low"])/4
+        Price_dist_1=distribution_df(POI_df_1,x_ax=" Hash",frequency=False,y_ax=" Volume",bins=300)
         Volume_stats_1=stats_setion_Series(Price_dist_1)
         fr_vol_1=frequency_inside(Volume_stats_1["Media"]-Volume_stats_1["Std"],Volume_stats_1["Media"]+Volume_stats_1["Std"],Price_dist)
 
         #Sesion actual -2 dia entorno de valor
         POI_df_2 = self.period_study(Datetime-timedelta(days=2),n=n).copy()
-        POI_df_2[" Mean"]=(POI_df_2[" Open"]+POI_df_2[" Last"]+POI_df_2[" High"]+POI_df_2[" Low"])/4
-        Price_dist_2=distribution_df(POI_df_2,x_ax=" Mean",frequency=False,y_ax=" Volume",bins=300)
+        POI_df_2[" Hash"]=(POI_df_2[" Open"]+POI_df_2[" Last"]+POI_df_2[" High"]+POI_df_2[" Low"])/4
+        Price_dist_2=distribution_df(POI_df_2,x_ax=" Hash",frequency=False,y_ax=" Volume",bins=300)
         Volume_stats_2=stats_setion_Series(Price_dist_2)
         fr_vol_2=frequency_inside(Volume_stats_2["Media"]-Volume_stats_2["Std"],Volume_stats_2["Media"]+Volume_stats_2["Std"],Price_dist)
 
+        #Calculo de las k
+        ks =calculo_k_medio(POI_df,300,Weigthed_mean,Std)
+
+        # print(ks)
+        
 
         #Derivado de Fecha
         self.traning_df.loc[indexDateTime,f" {Sesion} - week"] = get_week(Datetime.day)
@@ -735,14 +812,18 @@ class RN_study:
         self.traning_df.loc[indexDateTime,f" {Sesion} - Open Time"] = To.hour
         #No Derivado de Fecha
         self.traning_df.loc[indexDateTime,f" {Sesion} - Open Price"] = Po
-        self.traning_df.loc[indexDateTime,f" {Sesion} - Weigthed Mean"] = Volume_stats["Media"]
-        self.traning_df.loc[indexDateTime,f" {Sesion} - Upper limmit Value Zone"] = Volume_stats["Media"] + 1*Volume_stats["Std"]
-        self.traning_df.loc[indexDateTime,f" {Sesion} - Lower limmit Value Zone"] = Volume_stats["Media"] - 1*Volume_stats["Std"]
-        self.traning_df.loc[indexDateTime,f" {Sesion} - Frecuency inside Sesion Value Zone -1"] = fr_vol_1
-        self.traning_df.loc[indexDateTime,f" {Sesion} - Frecuency inside Sesion Value Zone -2"] = fr_vol_2
+        self.traning_df.loc[indexDateTime,f" {Sesion} - Weigthed Mean"] = Weigthed_mean
+        self.traning_df.loc[indexDateTime,f" {Sesion} - Upper limmit Value Zone"] = Weigthed_mean + 1*Std
+        self.traning_df.loc[indexDateTime,f" {Sesion} - Lower limmit Value Zone"] = Weigthed_mean - 1*Std
+        self.traning_df.loc[indexDateTime,f" {Sesion} - % Frecuency inside Sesion Value Zone -1"] = fr_vol_1*100
+        self.traning_df.loc[indexDateTime,f" {Sesion} - % Frecuency inside Sesion Value Zone -2"] = fr_vol_2*100
         self.traning_df.loc[indexDateTime,f" {Sesion} - Std Weigthed"] = Std
         self.traning_df.loc[indexDateTime,f" {Sesion} - Bids Acumulated"] = Bids_acum
         self.traning_df.loc[indexDateTime,f" {Sesion} - Asks Acumulated"] = Asks_acum
+        self.traning_df.loc[indexDateTime,f" {Sesion} - k+ Movil Mean"] = ks[' k+ Movil']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - k- Movil Mean"] = ks[' k- Movil']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - k+ Fixed Mean"] = ks[' k+ Fixed']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - k- Fixed Mean"] = ks[' k- Fixed']
 
         
         if Tl<Th: # Primer POI = Low
@@ -751,9 +832,9 @@ class RN_study:
             self.traning_df.loc[indexDateTime,f" {Sesion} - Var Segs POI1-POI2"] = (Th-Tl).total_seconds()
             self.traning_df.loc[indexDateTime,f" {Sesion} - Var Segs POI2-Close"] = (Tc-Th).total_seconds()
             #No Derivado de Fecha
-            self.traning_df.loc[indexDateTime,f" {Sesion} - Var Pips Open-POI1"] = abs((Pl-Po)*10000)
-            self.traning_df.loc[indexDateTime,f" {Sesion} - Var Pips POI1-POI2"] = abs((Ph-Pl)*10000)
-            self.traning_df.loc[indexDateTime,f" {Sesion} - Var Pips POI2-Close"] = abs((Pc-Ph)*10000)
+            self.traning_df.loc[indexDateTime,f" {Sesion} - Var Pips Open-POI1"] = ((Pl-Po)*10000)  # -
+            self.traning_df.loc[indexDateTime,f" {Sesion} - Var Pips POI1-POI2"] = ((Ph-Pl)*10000)  # +
+            self.traning_df.loc[indexDateTime,f" {Sesion} - Var Pips POI2-Close"] = ((Pc-Ph)*10000) # -
 
         else: # Primer POI = High
             #Derivado de Fecha
@@ -761,9 +842,9 @@ class RN_study:
             self.traning_df.loc[indexDateTime,f" {Sesion} - Var Segs POI1-POI2"] = (Tl-Th).total_seconds()
             self.traning_df.loc[indexDateTime,f" {Sesion} - Var Segs POI2-Close"] = (Tc-Tl).total_seconds()
             #No Derivado de Fecha
-            self.traning_df.loc[indexDateTime,f" {Sesion} - Var Pips Open-POI1"] = abs((Ph-Po)*10000)
-            self.traning_df.loc[indexDateTime,f" {Sesion} - Var Pips POI1-POI2"] = abs((Pl-Ph)*10000)
-            self.traning_df.loc[indexDateTime,f" {Sesion} - Var Pips POI2-Close"] = abs((Pc-Pl)*10000)
+            self.traning_df.loc[indexDateTime,f" {Sesion} - Var Pips Open-POI1"] = ((Ph-Po)*10000)  # +
+            self.traning_df.loc[indexDateTime,f" {Sesion} - Var Pips POI1-POI2"] = ((Pl-Ph)*10000)  # -
+            self.traning_df.loc[indexDateTime,f" {Sesion} - Var Pips POI2-Close"] = ((Pc-Pl)*10000) # +
 
 
 
@@ -783,17 +864,17 @@ class RN_study:
             self.POIset(START,S1,"Sidney", indexDateTime)
             START=START+timedelta(hours=S1)
 
-            # Tokio para para raul
-            self.POIset(START,S2,"Tokio", indexDateTime)
-            START=START+timedelta(hours=S2)
+            # # Tokio para para raul
+            # self.POIset(START,S2,"Tokio", indexDateTime)
+            # START=START+timedelta(hours=S2)
 
-            # Londres para raul
-            self.POIset(START,S3,"Londres", indexDateTime)
-            START=START+timedelta(hours=S3)
+            # # Londres para raul
+            # self.POIset(START,S3,"Londres", indexDateTime)
+            # START=START+timedelta(hours=S3)
 
-            # NY para para raul
-            self.POIset(START,S4,"Ny", indexDateTime)
-            START=START+timedelta(hours=S4)
+            # # NY para para raul
+            # self.POIset(START,S4,"Ny", indexDateTime)
+            # START=START+timedelta(hours=S4)
             
         else:
             raise Exception(f"Hour datatime not correct, must be {P1}")
