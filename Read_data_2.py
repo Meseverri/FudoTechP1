@@ -635,9 +635,11 @@ def frequency_inside(inf,sup,dist_df):
     return Fr.sum() 
 
 def calculo_k_medio (df_in, bins, Weighted_mean_fixed, Std_fixed):
+    #Cantidad de elementos dentro de un bin para crear bins filas
+    gb_bins = len(df_in)/bins
 
     df_in.drop([" NumberOfTrades", " Alpha High", " Alpha Low", " Hash"], axis=1)
-    df_in.groupby(df_in.index//bins).agg({
+    df_in=df_in.groupby(df_in.index//gb_bins).agg({
                         'Date': 'first',
                         ' Open': 'first',
                         ' High': 'max',
@@ -648,7 +650,6 @@ def calculo_k_medio (df_in, bins, Weighted_mean_fixed, Std_fixed):
                         ' AskVolume': 'sum',
     })
     df_in[' Hash']=(df_in[" Open"]+df_in[" Last"]+df_in[" High"]+df_in[" Low"])/4
-
 
 
     df_in[" P*V"]=df_in[" Volume"] * df_in[" Hash"]
@@ -664,6 +665,7 @@ def calculo_k_medio (df_in, bins, Weighted_mean_fixed, Std_fixed):
 
     kpos_movil=df_in[df_in[" k"]>0][" k"]
     mean_kpos_movil = kpos_movil.mean()
+    max_k_movil = kpos_movil.max()
     over_kpos_movil_bids=df_in[df_in[" k"]>mean_kpos_movil][" BidVolume"].sum()
     over_kpos_movil_asks=df_in[df_in[" k"]>mean_kpos_movil][" AskVolume"].sum()
 
@@ -672,40 +674,42 @@ def calculo_k_medio (df_in, bins, Weighted_mean_fixed, Std_fixed):
 
     kneg_movil=df_in[df_in[" k"]<0][" k"]
     mean_kneg_movil = kneg_movil.mean()
-    above_kpos_movil_bids=df_in[df_in[" k"]<mean_kneg_movil][" BidVolume"].sum()
-    above_kpos_movil_asks=df_in[df_in[" k"]<mean_kneg_movil][" AskVolume"].sum()
+    min_k_movil = kneg_movil.min()
+    below_kneg_movil_bids=df_in[df_in[" k"]<mean_kneg_movil][" BidVolume"].sum()
+    below_kneg_movil_asks=df_in[df_in[" k"]<mean_kneg_movil][" AskVolume"].sum()
 
 
 
     kpos_fixed=df_in[df_in[" k Fixed"]>0][" k Fixed"]
     mean_kpos_fixed = kpos_fixed.mean()
+    max_k_fixed = kpos_fixed.max()
     over_kpos_fixed_bids=df_in[df_in[" k Fixed"]>mean_kpos_fixed][" BidVolume"].sum()
     over_kpos_fixed_asks=df_in[df_in[" k Fixed"]>mean_kpos_fixed][" AskVolume"].sum()
 
     kneg_fixed=df_in[df_in[" k Fixed"]<0][" k Fixed"]
     mean_kneg_fixed = kneg_fixed.mean()
-    above_kpos_fixed_bids=df_in[df_in[" k Fixed"]<mean_kneg_fixed][" BidVolume"].sum()
-    above_kpos_fixed_asks=df_in[df_in[" k Fixed"]<mean_kneg_fixed][" AskVolume"].sum()
-
-    print(mean_kpos_movil, " --- ",type(mean_kpos_movil), " --- " ,df_in[" Std"].min())
-    if np.isinf(mean_kpos_movil) is float('inf'):
-        print(df_in)
-
+    min_k_fixed = kneg_fixed.min()
+    below_kneg_fixed_bids=df_in[df_in[" k Fixed"]<mean_kneg_fixed][" BidVolume"].sum()
+    below_kneg_fixed_asks=df_in[df_in[" k Fixed"]<mean_kneg_fixed][" AskVolume"].sum()
 
 
     return {
         ' k+ Movil':mean_kpos_movil,
+        ' Max k Movil':max_k_movil,
         ' k- Movil':mean_kneg_movil,
+        ' Min k Movil':min_k_movil,
         ' k+ Fixed':mean_kpos_fixed,
+        ' Max k Fixed':max_k_fixed,
         ' k- Fixed':mean_kneg_fixed,
+        ' Min k Fixed':min_k_fixed,
         ' Bids Over k+ Movil':over_kpos_movil_bids,
         ' Asks Over k+ Movil':over_kpos_movil_asks,
-        ' Bids Above k- Movil':above_kpos_movil_bids,
-        ' Asks Above k- Movil':above_kpos_movil_asks,
+        ' Bids Below k- Movil':below_kneg_movil_bids,
+        ' Asks Below k- Movil':below_kneg_movil_asks,
         ' Bids Over k+ Fixed':over_kpos_fixed_bids,
         ' Asks Over k+ Fixed':over_kpos_fixed_asks,
-        ' Bids Above k- Fixed':above_kpos_fixed_bids,
-        ' Asks Above k- Fixed':above_kpos_fixed_asks,
+        ' Bids Below k- Fixed':below_kneg_fixed_bids,
+        ' Asks Below k- Fixed':below_kneg_fixed_asks,
     }
 
 
@@ -802,10 +806,7 @@ class RN_study:
 
         #Calculo de las k
         ks =calculo_k_medio(POI_df,300,Weigthed_mean,Std)
-
-        # print(ks)
-        
-
+     
         #Derivado de Fecha
         self.traning_df.loc[indexDateTime,f" {Sesion} - week"] = get_week(Datetime.day)
         self.traning_df.loc[indexDateTime,f" {Sesion} - week_day"] = Datetime.weekday()
@@ -820,11 +821,25 @@ class RN_study:
         self.traning_df.loc[indexDateTime,f" {Sesion} - Std Weigthed"] = Std
         self.traning_df.loc[indexDateTime,f" {Sesion} - Bids Acumulated"] = Bids_acum
         self.traning_df.loc[indexDateTime,f" {Sesion} - Asks Acumulated"] = Asks_acum
+
         self.traning_df.loc[indexDateTime,f" {Sesion} - k+ Movil Mean"] = ks[' k+ Movil']
         self.traning_df.loc[indexDateTime,f" {Sesion} - k- Movil Mean"] = ks[' k- Movil']
         self.traning_df.loc[indexDateTime,f" {Sesion} - k+ Fixed Mean"] = ks[' k+ Fixed']
         self.traning_df.loc[indexDateTime,f" {Sesion} - k- Fixed Mean"] = ks[' k- Fixed']
 
+        self.traning_df.loc[indexDateTime,f" {Sesion} - k Movil Max"] = ks[' Max k Movil']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - k Movil Min"] = ks[' Min k Movil']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - k Fixed Max"] = ks[' Max k Fixed']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - k Fixed Min"] = ks[' Min k Fixed']
+        
+        self.traning_df.loc[indexDateTime,f" {Sesion} - Bids Over k+ Movil"] = ks[' Bids Over k+ Movil']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - Asks Over k+ Movil"] = ks[' Asks Over k+ Movil']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - Bids Below k- Movil"] = ks[' Bids Below k- Movil']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - Asks Below k- Movil"] = ks[' Asks Below k- Movil']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - Bids Over k+ Fixed"] = ks[' Bids Over k+ Fixed']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - Asks Over k+ Fixed"] = ks[' Asks Over k+ Fixed']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - Bids Below k- Fixed"] = ks[' Bids Below k- Fixed']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - Asks Below k- Fixed"] = ks[' Asks Below k- Fixed']
         
         if Tl<Th: # Primer POI = Low
             #Derivado de Fecha
@@ -864,17 +879,17 @@ class RN_study:
             self.POIset(START,S1,"Sidney", indexDateTime)
             START=START+timedelta(hours=S1)
 
-            # # Tokio para para raul
-            # self.POIset(START,S2,"Tokio", indexDateTime)
-            # START=START+timedelta(hours=S2)
+            # Tokio para para raul
+            self.POIset(START,S2,"Tokio", indexDateTime)
+            START=START+timedelta(hours=S2)
 
-            # # Londres para raul
-            # self.POIset(START,S3,"Londres", indexDateTime)
-            # START=START+timedelta(hours=S3)
+            # Londres para raul
+            self.POIset(START,S3,"Londres", indexDateTime)
+            START=START+timedelta(hours=S3)
 
-            # # NY para para raul
-            # self.POIset(START,S4,"Ny", indexDateTime)
-            # START=START+timedelta(hours=S4)
+            # NY para para raul
+            self.POIset(START,S4,"Ny", indexDateTime)
+            START=START+timedelta(hours=S4)
             
         else:
             raise Exception(f"Hour datatime not correct, must be {P1}")
