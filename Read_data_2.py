@@ -252,7 +252,7 @@ def density_df(data,x_ax,frequency=True,y_ax=None, bins=100):
     #Index_DF=[]
     dist_data=[]
     
-    for k in range(bins+1):    
+    for k in range(bins):    
         Ranges.append(round(minimo+k*interval_size,7))
         #Index_DF.append(round(minimo+(2*k+1)*interval_size/2,7))
     count=1
