@@ -241,7 +241,7 @@ def intersection(lst1, lst2):
 # frequency=True: True if you only need to count the number of times, False if volume is need 
 # y_ax=None, 
 # bins=100
-def distribution_df(data,x_ax,frequency=True,y_ax=None, bins=100):
+def density_df(data,x_ax,frequency=True,y_ax=None, bins=100):
     data=data.round(6)
     minimo=data[x_ax].min()
     maximo=data[x_ax].max()
@@ -785,7 +785,7 @@ class RN_study:
         Asks_acum = POI_df[" AskVolume"].sum()
 
         #Sesion actual entorno de valor
-        Price_dist=distribution_df(POI_df,x_ax=" Hash",frequency=False,y_ax=" Volume",bins=300)
+        Price_dist=density_df(POI_df,x_ax=" Hash",frequency=False,y_ax=" Volume",bins=300)
         Volume_stats=stats_setion_Series(Price_dist)
         Std = Volume_stats["Std"] 
         Weigthed_mean = Volume_stats["Media"]
@@ -793,14 +793,14 @@ class RN_study:
         #Sesion actual -1 dia entorno de valor
         POI_df_1 = self.period_study(Datetime-timedelta(days=1),n=n).copy()
         POI_df_1[" Hash"]=(POI_df_1[" Open"]+POI_df_1[" Last"]+POI_df_1[" High"]+POI_df_1[" Low"])/4
-        Price_dist_1=distribution_df(POI_df_1,x_ax=" Hash",frequency=False,y_ax=" Volume",bins=300)
+        Price_dist_1=density_df(POI_df_1,x_ax=" Hash",frequency=False,y_ax=" Volume",bins=300)
         Volume_stats_1=stats_setion_Series(Price_dist_1)
         fr_vol_1=frequency_inside(Volume_stats_1["Media"]-Volume_stats_1["Std"],Volume_stats_1["Media"]+Volume_stats_1["Std"],Price_dist)
 
         #Sesion actual -2 dia entorno de valor
         POI_df_2 = self.period_study(Datetime-timedelta(days=2),n=n).copy()
         POI_df_2[" Hash"]=(POI_df_2[" Open"]+POI_df_2[" Last"]+POI_df_2[" High"]+POI_df_2[" Low"])/4
-        Price_dist_2=distribution_df(POI_df_2,x_ax=" Hash",frequency=False,y_ax=" Volume",bins=300)
+        Price_dist_2=density_df(POI_df_2,x_ax=" Hash",frequency=False,y_ax=" Volume",bins=300)
         Volume_stats_2=stats_setion_Series(Price_dist_2)
         fr_vol_2=frequency_inside(Volume_stats_2["Media"]-Volume_stats_2["Std"],Volume_stats_2["Media"]+Volume_stats_2["Std"],Price_dist)
 

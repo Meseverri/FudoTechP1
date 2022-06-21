@@ -67,4 +67,4 @@ Atributo a predecir:
 start=datetime.now()
 df = RN_study("6EM22-CME.scid_BarData.txt")
 duration=datetime.now()-start
-print(duration)
+print("Training test completed in: ",duration)
