@@ -1,8 +1,8 @@
 from Read_data_2 import RN_study
-import numpy as np
-import matplotlib.pyplot as plt
-from datetime import datetime,timedelta
-import pandas as pd
+from datetime import datetime
+from playsound import playsound
+
+
 
 """ Parametros A seleccionar Density_Bins=300(Hacer estudio para deterinar) K_Bins=len(df_sesion), Primeras_horas_estudiar_k=1, Duracion_sesiones=[S1=7,S2=4,S3=6,S4=7], value_zone_width=1
 
@@ -78,6 +78,15 @@ Atributo a predecir:
 """
 
 start=datetime.now()
-df = RN_study("6EM22-CME.scid_BarData.txt")
+try:
+    df = RN_study("6EM22-CME.scid_BarData.txt")
+except Exception as e:
+    playsound('error.mp3',True)
+    duration=datetime.now()-start
+    print("Duracion Error: ",duration)
+    raise e
+
 duration=datetime.now()-start
 print("Training test completed in: ",duration)
+
+playsound('ok.mp3',True)

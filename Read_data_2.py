@@ -634,11 +634,11 @@ def frequency_inside(inf,sup,dist_df):
     Fr=df.iloc[:,2]
     return Fr.sum() 
 
-def calculo_k_medio (df_in, bins, Weighted_mean_fixed, Std_fixed, extra_columns=True):
+def calculo_k_medio (df_in, bins, Weighted_mean_fixed, Std_fixed, full_session=True):
     #Cantidad de elementos dentro de un bin para crear bins filas
     original_len = len(df_in)
     gb_bins = original_len/bins
-    if extra_columns:
+    if full_session:
         df_in.drop([" Alpha High", " Alpha Low", " Hash"], axis=1)
     df_in=df_in.groupby(df_in.index//gb_bins).agg({
                         'Date': 'first',
@@ -670,60 +670,75 @@ def calculo_k_medio (df_in, bins, Weighted_mean_fixed, Std_fixed, extra_columns=
     # print('droped percent:',(1-new_len/original_len)*100)
 
     # k+ movil atributes
-    kpos_movil=df_in[df_in[" k"]>0][" k"]
+    kpos_movil=df_in[df_in[" k"]>=0][" k"]
+    if len(kpos_movil) == 0: 
+        kpos_movil= pd.Series([0]) 
     mean_kpos_movil = kpos_movil.mean()
     max_k_movil = kpos_movil.max()
-    over_kpos_movil_bids=df_in[df_in[" k"]>mean_kpos_movil][" BidVolume"].sum()
-    over_kpos_movil_asks=df_in[df_in[" k"]>mean_kpos_movil][" AskVolume"].sum()
-    over_kpos_movil_Nro_trades=df_in[df_in[" k"]>mean_kpos_movil][" NumberOfTrades"].sum()
+    over_kpos_movil_bids=df_in[df_in[" k"]>=mean_kpos_movil][" BidVolume"].sum()
+    over_kpos_movil_asks=df_in[df_in[" k"]>=mean_kpos_movil][" AskVolume"].sum()
+    over_kpos_movil_Nro_trades=df_in[df_in[" k"]>=mean_kpos_movil][" NumberOfTrades"].sum()
 
     # k- movil atributes
-    kneg_movil=df_in[df_in[" k"]<0][" k"]
+    kneg_movil=df_in[df_in[" k"]<=0][" k"]
+    if len(kneg_movil) == 0: 
+        kneg_movil = pd.Series([0]) 
     mean_kneg_movil = kneg_movil.mean()
     min_k_movil = kneg_movil.min()
-    below_kneg_movil_bids=df_in[df_in[" k"]<mean_kneg_movil][" BidVolume"].sum()
-    below_kneg_movil_asks=df_in[df_in[" k"]<mean_kneg_movil][" AskVolume"].sum()
-    below_kneg_movil_Nro_trades=df_in[df_in[" k"]<mean_kneg_movil][" NumberOfTrades"].sum()
+    below_kneg_movil_bids=df_in[df_in[" k"]<=mean_kneg_movil][" BidVolume"].sum()
+    below_kneg_movil_asks=df_in[df_in[" k"]<=mean_kneg_movil][" AskVolume"].sum()
+    below_kneg_movil_Nro_trades=df_in[df_in[" k"]<=mean_kneg_movil][" NumberOfTrades"].sum()
 
-    # k+ fixed atributes
-    kpos_fixed=df_in[df_in[" k Fixed"]>0][" k Fixed"]
-    mean_kpos_fixed = kpos_fixed.mean()
-    max_k_fixed = kpos_fixed.max()
-    over_kpos_fixed_bids=df_in[df_in[" k Fixed"]>mean_kpos_fixed][" BidVolume"].sum()
-    over_kpos_fixed_asks=df_in[df_in[" k Fixed"]>mean_kpos_fixed][" AskVolume"].sum()
-    over_kpos_fixed_Nro_trades=df_in[df_in[" k Fixed"]>mean_kpos_fixed][" NumberOfTrades"].sum()
+    if full_session:
+        # k+ fixed atributes
+        kpos_fixed=df_in[df_in[" k Fixed"]>=0][" k Fixed"]
+        if len(kpos_fixed) == 0: 
+            kpos_fixed = pd.Series([0])  
+        mean_kpos_fixed = kpos_fixed.mean()
+        max_k_fixed = kpos_fixed.max()
+        over_kpos_fixed_bids=df_in[df_in[" k Fixed"]>=mean_kpos_fixed][" BidVolume"].sum()
+        over_kpos_fixed_asks=df_in[df_in[" k Fixed"]>=mean_kpos_fixed][" AskVolume"].sum()
+        over_kpos_fixed_Nro_trades=df_in[df_in[" k Fixed"]>=mean_kpos_fixed][" NumberOfTrades"].sum()
 
-    # k- fixed atributes
-    kneg_fixed=df_in[df_in[" k Fixed"]<0][" k Fixed"]
-    mean_kneg_fixed = kneg_fixed.mean()
-    min_k_fixed = kneg_fixed.min()
-    below_kneg_fixed_bids=df_in[df_in[" k Fixed"]<mean_kneg_fixed][" BidVolume"].sum()
-    below_kneg_fixed_asks=df_in[df_in[" k Fixed"]<mean_kneg_fixed][" AskVolume"].sum()
-    below_kneg_fixed_Nro_trades=df_in[df_in[" k Fixed"]<mean_kneg_fixed][" NumberOfTrades"].sum()
+        # k- fixed atributes
+        kneg_fixed=df_in[df_in[" k Fixed"]<=0][" k Fixed"]
+        if len(kneg_fixed) == 0: 
+            kneg_fixed = pd.Series([0]) 
+        mean_kneg_fixed = kneg_fixed.mean()
+        min_k_fixed = kneg_fixed.min()
+        below_kneg_fixed_bids=df_in[df_in[" k Fixed"]<=mean_kneg_fixed][" BidVolume"].sum()
+        below_kneg_fixed_asks=df_in[df_in[" k Fixed"]<=mean_kneg_fixed][" AskVolume"].sum()
+        below_kneg_fixed_Nro_trades=df_in[df_in[" k Fixed"]<=mean_kneg_fixed][" NumberOfTrades"].sum()
 
-    return {
+    k_ = { 
         ' k+ Movil':mean_kpos_movil,
         ' Max k Movil':max_k_movil,
         ' k- Movil':mean_kneg_movil,
         ' Min k Movil':min_k_movil,
-        ' k+ Fixed':mean_kpos_fixed,
-        ' Max k Fixed':max_k_fixed,
-        ' k- Fixed':mean_kneg_fixed,
-        ' Min k Fixed':min_k_fixed,
         ' Bids Over k+ Movil':over_kpos_movil_bids,
         ' Asks Over k+ Movil':over_kpos_movil_asks,
         ' Bids Below k- Movil':below_kneg_movil_bids,
         ' Asks Below k- Movil':below_kneg_movil_asks,
-        ' Bids Over k+ Fixed':over_kpos_fixed_bids,
-        ' Asks Over k+ Fixed':over_kpos_fixed_asks,
-        ' Bids Below k- Fixed':below_kneg_fixed_bids,
-        ' Asks Below k- Fixed':below_kneg_fixed_asks,
         ' Num Trades Over k+ Movil':over_kpos_movil_Nro_trades,
         ' Num Trades Below k- Movil':below_kneg_movil_Nro_trades,
-        ' Num Trades Over k+ Fixed':over_kpos_fixed_Nro_trades,
-        ' Num Trades Below k- Fixed':below_kneg_fixed_Nro_trades,
+        }
 
-    }
+    if full_session:
+        k_fixed_ = {
+            ' k+ Fixed':mean_kpos_fixed,
+            ' Max k Fixed':max_k_fixed,
+            ' k- Fixed':mean_kneg_fixed,
+            ' Min k Fixed':min_k_fixed,
+            ' Bids Over k+ Fixed':over_kpos_fixed_bids,
+            ' Asks Over k+ Fixed':over_kpos_fixed_asks,
+            ' Bids Below k- Fixed':below_kneg_fixed_bids,
+            ' Asks Below k- Fixed':below_kneg_fixed_asks,
+            ' Num Trades Over k+ Fixed':over_kpos_fixed_Nro_trades,
+            ' Num Trades Below k- Fixed':below_kneg_fixed_Nro_trades,
+        }
+        k_.update(k_fixed_)
+
+    return k_
 
 
 
@@ -765,8 +780,9 @@ class RN_study:
         
 
 
-        # print(self.df.iloc[15:35,:])
         self.traning_df.dropna().to_csv("trainingRN1.csv", ",")
+        # self.traning_df.to_csv("trainingRN1_SinDrop.csv", ",")
+
 
     def alpha(p,p0,p1):
         P=p-p0
@@ -848,24 +864,14 @@ class RN_study:
         # Atributos de K para la primera hora de la sesion  
         self.traning_df.loc[indexDateTime,f" {Sesion} - Early k+ Movil Mean"] = early_ks[' k+ Movil']
         self.traning_df.loc[indexDateTime,f" {Sesion} - Early k- Movil Mean"] = early_ks[' k- Movil']
-        self.traning_df.loc[indexDateTime,f" {Sesion} - Early k+ Fixed Mean"] = early_ks[' k+ Fixed']
-        self.traning_df.loc[indexDateTime,f" {Sesion} - Early k- Fixed Mean"] = early_ks[' k- Fixed']
         self.traning_df.loc[indexDateTime,f" {Sesion} - Early k Movil Max"] = early_ks[' Max k Movil']
         self.traning_df.loc[indexDateTime,f" {Sesion} - Early k Movil Min"] = early_ks[' Min k Movil']
-        self.traning_df.loc[indexDateTime,f" {Sesion} - Early k Fixed Max"] = early_ks[' Max k Fixed']
-        self.traning_df.loc[indexDateTime,f" {Sesion} - Early k Fixed Min"] = early_ks[' Min k Fixed']
         self.traning_df.loc[indexDateTime,f" {Sesion} - Early Bids Over k+ Movil"] = early_ks[' Bids Over k+ Movil']
         self.traning_df.loc[indexDateTime,f" {Sesion} - Early Asks Over k+ Movil"] = early_ks[' Asks Over k+ Movil']
         self.traning_df.loc[indexDateTime,f" {Sesion} - Early Num Trades Over k+ Movil"] = early_ks[' Num Trades Over k+ Movil']
         self.traning_df.loc[indexDateTime,f" {Sesion} - Early Bids Below k- Movil"] = early_ks[' Bids Below k- Movil']
         self.traning_df.loc[indexDateTime,f" {Sesion} - Early Asks Below k- Movil"] = early_ks[' Asks Below k- Movil']
         self.traning_df.loc[indexDateTime,f" {Sesion} - Early Num Trades Below k- Movil"] = early_ks[' Num Trades Below k- Movil']
-        self.traning_df.loc[indexDateTime,f" {Sesion} - Early Bids Over k+ Fixed"] = early_ks[' Bids Over k+ Fixed']
-        self.traning_df.loc[indexDateTime,f" {Sesion} - Early Asks Over k+ Fixed"] = early_ks[' Asks Over k+ Fixed']
-        self.traning_df.loc[indexDateTime,f" {Sesion} - Early Num Trades Over k+ Fixed"] = early_ks[' Num Trades Over k+ Fixed']
-        self.traning_df.loc[indexDateTime,f" {Sesion} - Early Bids Below k- Fixed"] = early_ks[' Bids Below k- Fixed']
-        self.traning_df.loc[indexDateTime,f" {Sesion} - Early Asks Below k- Fixed"] = early_ks[' Asks Below k- Fixed']
-        self.traning_df.loc[indexDateTime,f" {Sesion} - Early Num Trades Below k- Fixed"] = early_ks[' Num Trades Below k- Fixed']
 
         # Atributos de K para la sesion completa 
         self.traning_df.loc[indexDateTime,f" {Sesion} - All k+ Movil Mean"] = ks[' k+ Movil']
@@ -942,12 +948,6 @@ class RN_study:
         else:
             raise Exception(f"Hour datatime not correct, must be {P1}")
 
-
-    
-
-
-        
-    
 
 
     def save_data(self,path,dataframe):
