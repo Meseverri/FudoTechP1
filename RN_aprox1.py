@@ -4,7 +4,10 @@ import matplotlib.pyplot as plt
 from datetime import datetime,timedelta
 import pandas as pd
 
-"""
+""" Parametros A seleccionar Density_Bins=300(Hacer estudio para deterinar) K_Bins=len(df_sesion), Primeras_horas_estudiar_k=1, Duracion_sesiones=[S1=7,S2=4,S3=6,S4=7], value_zone_width=1
+
+redes LCTM 
+
 Informacion referida a temporalidad "actual" se refiere a la vela recien cerrada (pensando en tiempo real)
 Informacion referida a temporalidad "en curso" se refiere a la vela que no ha cerrado (pensando en tiempo real)
 
@@ -22,8 +25,6 @@ Atributos de n sesiones hacia atras con las que la instancia actual esta reaccio
         -Week [Primera semana ,Segunda semana ,Tercera semana,cuarta semana] +
         -Dia de la semana (nominal lunes (0), martes (1), etc) +
         -Hora de apertura formato 24h +
-                -Primer POI en overlap  (utilizar cuando tratemos con sesiones)
-                -Segundo POI en overlap (utilizar cuando tratemos con sesiones)
         -Variacion en segundos desde apertura hasta primer POI +
         -Variacion en segundos del primer POI al segundo POI +
         -Variacion en segundos del segundo POI al close +
@@ -39,20 +40,32 @@ Atributos de n sesiones hacia atras con las que la instancia actual esta reaccio
     -Cota inferior del entorno de valor +
     -frecuencia del entorno de valor -1 en la actual +
     -frecuencia del entorno de valor -2 en la actual + 
-    -frecuencia del entorno de valor -3 en la actual -
 
-    -K+ distancia del precio en curso por arriba de la media muestral (Se van calculando la media ponderada y la desviacion tipica acumuladas para cada instancia de la sesion)  +
-    -k- distancia del precio en curso por debajo de la media muestral (Se van calculando la media ponderada y la desviacion tipica acumuladas para cada instancia de la sesion) +
-    -K+ veces la desviacion tipica por arriba de la media muestral( la media y la desviacion estandar son constantes) +
-    -K- veces la desviacion tipica por abajo de la media muestral( la media y la desviacion estandar son constantes) +
-
-    
     -Bids acumulados de la sesion (total de bids) +
     -Asks acumulados de la sesion (total de asks) +
-    -Bids acumulados por arriba de k+ veces la desviasion tipica de la sesion (total de bids)
-    -Asks acumulados por arriba de k+ veces la desviasion tipica de la sesion (total de asks)
-    -Bids acumulados por abajo de k- veces la desviasion tipica de la sesion (total de bids)
-    -Asks acumulados por abajo de k- veces la desviasion tipica de la sesion (total de asks)
+    -Nro de trades acumulados de la sesion  +
+    -Grupo de atributos para la sesión completa y la primera hora de la sesión 
+        -K+ distancia del precio en curso por arriba de la media muestral (Se van calculando la media ponderada y la desviacion tipica acumuladas para cada instancia de la sesion y se calcula la media)  +
+        -K+ Maxima antes de hacer la media Movil +
+        -k- distancia del precio en curso por debajo de la media muestral (Se van calculando la media ponderada y la desviacion tipica acumuladas para cada instancia de la sesion y se calcula la media) +
+        -K- Minima antes de hacer la media Movil+
+        -K+ distancia del precio en curso por arriba de la media muestral ( la media y la desviacion estandar son constantes ya que pertenecen a toda la muestra) +
+        -K+ Maxima antes de hacer la media Fija +
+        -K- distancia del precio en curso por debajo de la media muestral ( la media y la desviacion estandar son constantes ya que pertenecen a toda la muestra) +
+        -K- Minima antes de hacer la media Fija +
+        -Bids acumulados por arriba de k+ movil veces la desviasion tipica de la sesion (total de bids) +
+        -Asks acumulados por arriba de k+ movil veces la desviasion tipica de la sesion (total de asks) +
+        -Nro de trades acumulados por arriba de k+ movil veces la desviasion tipica de la sesion  +
+        -Bids acumulados por abajo de k- movil veces la desviasion tipica de la sesion (total de bids) +
+        -Asks acumulados por abajo de k- movil veces la desviasion tipica de la sesion (total de asks) +
+        -Nro de trades acumulados por abajo de k- movil veces la desviasion tipica de la sesion +
+        -Bids acumulados por arriba de k+ fija veces la desviasion tipica de la sesion (total de bids) +
+        -Asks acumulados por arriba de k+ fija veces la desviasion tipica de la sesion (total de asks) +
+        -Nro de trades acumulados por arriba de k+ fija veces la desviasion tipica de la sesion  +
+        -Bids acumulados por abajo de k- fija veces la desviasion tipica de la sesion (total de bids) +
+        -Asks acumulados por abajo de k- fija veces la desviasion tipica de la sesion (total de asks) +
+        -Nro de trades acumulados por abajo de k- fija veces la desviasion tipica de la sesion +
+
 
 
 Atributo a predecir:

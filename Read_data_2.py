@@ -634,11 +634,12 @@ def frequency_inside(inf,sup,dist_df):
     Fr=df.iloc[:,2]
     return Fr.sum() 
 
-def calculo_k_medio (df_in, bins, Weighted_mean_fixed, Std_fixed):
+def calculo_k_medio (df_in, bins, Weighted_mean_fixed, Std_fixed, extra_columns=True):
     #Cantidad de elementos dentro de un bin para crear bins filas
-    gb_bins = len(df_in)/bins
-
-    df_in.drop([" NumberOfTrades", " Alpha High", " Alpha Low", " Hash"], axis=1)
+    original_len = len(df_in)
+    gb_bins = original_len/bins
+    if extra_columns:
+        df_in.drop([" Alpha High", " Alpha Low", " Hash"], axis=1)
     df_in=df_in.groupby(df_in.index//gb_bins).agg({
                         'Date': 'first',
                         ' Open': 'first',
@@ -648,9 +649,9 @@ def calculo_k_medio (df_in, bins, Weighted_mean_fixed, Std_fixed):
                         ' Volume': 'sum',
                         ' BidVolume': 'sum', 
                         ' AskVolume': 'sum',
+                        ' NumberOfTrades': 'sum'
     })
     df_in[' Hash']=(df_in[" Open"]+df_in[" Last"]+df_in[" High"]+df_in[" Low"])/4
-
 
     df_in[" P*V"]=df_in[" Volume"] * df_in[" Hash"]
     df_in[" Acum P*V"]=df_in[" P*V"].cumsum()
@@ -660,38 +661,45 @@ def calculo_k_medio (df_in, bins, Weighted_mean_fixed, Std_fixed):
     df_in[" Acum P**2*V"]=df_in[" P**2*V"].cumsum()
     df_in[" Weighted Mean 2"]=(df_in[" Acum P**2*V"])/df_in[" Acum Volume"]
     df_in[" Std"]= (df_in[" Weighted Mean 2"] - df_in[" Weighted Mean"]**2)**(1/2)
-    df_in[" k"]=(df_in[" Hash"] - df_in[" Weighted Mean"])/df_in[" Std"]
-    df_in[" k Fixed"]=(df_in[" Hash"] - Weighted_mean_fixed)/Std_fixed
+    df_in[" k"]=((df_in[" Hash"] - df_in[" Weighted Mean"])/df_in[" Std"])
+    df_in[" k Fixed"]=((df_in[" Hash"] - Weighted_mean_fixed)/Std_fixed)
 
+    # Drop inf k values
+    df_in=df_in.drop(df_in[np.isinf(df_in[" k"])].index)
+    # new_len=len(df_in)
+    # print('droped percent:',(1-new_len/original_len)*100)
+
+    # k+ movil atributes
     kpos_movil=df_in[df_in[" k"]>0][" k"]
     mean_kpos_movil = kpos_movil.mean()
     max_k_movil = kpos_movil.max()
     over_kpos_movil_bids=df_in[df_in[" k"]>mean_kpos_movil][" BidVolume"].sum()
     over_kpos_movil_asks=df_in[df_in[" k"]>mean_kpos_movil][" AskVolume"].sum()
+    over_kpos_movil_Nro_trades=df_in[df_in[" k"]>mean_kpos_movil][" NumberOfTrades"].sum()
 
-
-    
-
+    # k- movil atributes
     kneg_movil=df_in[df_in[" k"]<0][" k"]
     mean_kneg_movil = kneg_movil.mean()
     min_k_movil = kneg_movil.min()
     below_kneg_movil_bids=df_in[df_in[" k"]<mean_kneg_movil][" BidVolume"].sum()
     below_kneg_movil_asks=df_in[df_in[" k"]<mean_kneg_movil][" AskVolume"].sum()
+    below_kneg_movil_Nro_trades=df_in[df_in[" k"]<mean_kneg_movil][" NumberOfTrades"].sum()
 
-
-
+    # k+ fixed atributes
     kpos_fixed=df_in[df_in[" k Fixed"]>0][" k Fixed"]
     mean_kpos_fixed = kpos_fixed.mean()
     max_k_fixed = kpos_fixed.max()
     over_kpos_fixed_bids=df_in[df_in[" k Fixed"]>mean_kpos_fixed][" BidVolume"].sum()
     over_kpos_fixed_asks=df_in[df_in[" k Fixed"]>mean_kpos_fixed][" AskVolume"].sum()
+    over_kpos_fixed_Nro_trades=df_in[df_in[" k Fixed"]>mean_kpos_fixed][" NumberOfTrades"].sum()
 
+    # k- fixed atributes
     kneg_fixed=df_in[df_in[" k Fixed"]<0][" k Fixed"]
     mean_kneg_fixed = kneg_fixed.mean()
     min_k_fixed = kneg_fixed.min()
     below_kneg_fixed_bids=df_in[df_in[" k Fixed"]<mean_kneg_fixed][" BidVolume"].sum()
     below_kneg_fixed_asks=df_in[df_in[" k Fixed"]<mean_kneg_fixed][" AskVolume"].sum()
-
+    below_kneg_fixed_Nro_trades=df_in[df_in[" k Fixed"]<mean_kneg_fixed][" NumberOfTrades"].sum()
 
     return {
         ' k+ Movil':mean_kpos_movil,
@@ -710,6 +718,11 @@ def calculo_k_medio (df_in, bins, Weighted_mean_fixed, Std_fixed):
         ' Asks Over k+ Fixed':over_kpos_fixed_asks,
         ' Bids Below k- Fixed':below_kneg_fixed_bids,
         ' Asks Below k- Fixed':below_kneg_fixed_asks,
+        ' Num Trades Over k+ Movil':over_kpos_movil_Nro_trades,
+        ' Num Trades Below k- Movil':below_kneg_movil_Nro_trades,
+        ' Num Trades Over k+ Fixed':over_kpos_fixed_Nro_trades,
+        ' Num Trades Below k- Fixed':below_kneg_fixed_Nro_trades,
+
     }
 
 
@@ -748,12 +761,12 @@ class RN_study:
 
         #Class to Predict
         Shifted_tr_df = self.traning_df.shift(periods=-1)
-        self.traning_df["Class to Predict-Close Var"] = (self.traning_df[" Open"] - Shifted_tr_df[" Open"])*10000
+        self.traning_df["Class to Predict-Close Var"] = (Shifted_tr_df[" Open"] - self.traning_df[" Open"])*10000
         
 
 
         # print(self.df.iloc[15:35,:])
-        print(self.traning_df.iloc[15:35,:].dropna().to_string())
+        self.traning_df.dropna().to_csv("trainingRN1.csv", ",")
 
     def alpha(p,p0,p1):
         P=p-p0
@@ -767,6 +780,7 @@ class RN_study:
     def POIset(self,Datetime,n, Sesion, indexDateTime):
         POI_df=self.period_study(Datetime,n=n).copy()
         POI_df.reset_index(drop=True, inplace=True)
+        #Esto funciona si y solo si los timeFrames son muy pequenos ejemplo 5-10 segundos. Evaluar en un futuro calcular con los ticks 
         POI_df[" Hash"]=(POI_df[" Open"]+POI_df[" Last"]+POI_df[" High"]+POI_df[" Low"])/4
 
         To=Datetime #Tiempo de apertura
@@ -783,19 +797,21 @@ class RN_study:
 
         Bids_acum = POI_df[" BidVolume"].sum()
         Asks_acum = POI_df[" AskVolume"].sum()
+        Num_trades_acum =POI_df[" NumberOfTrades"].sum()
 
         #Sesion actual entorno de valor
         Price_dist=density_df(POI_df,x_ax=" Hash",frequency=False,y_ax=" Volume",bins=300)
         Volume_stats=stats_setion_Series(Price_dist)
         Std = Volume_stats["Std"] 
         Weigthed_mean = Volume_stats["Media"]
+        value_zone_width = 1
 
         #Sesion actual -1 dia entorno de valor
         POI_df_1 = self.period_study(Datetime-timedelta(days=1),n=n).copy()
         POI_df_1[" Hash"]=(POI_df_1[" Open"]+POI_df_1[" Last"]+POI_df_1[" High"]+POI_df_1[" Low"])/4
         Price_dist_1=density_df(POI_df_1,x_ax=" Hash",frequency=False,y_ax=" Volume",bins=300)
         Volume_stats_1=stats_setion_Series(Price_dist_1)
-        fr_vol_1=frequency_inside(Volume_stats_1["Media"]-Volume_stats_1["Std"],Volume_stats_1["Media"]+Volume_stats_1["Std"],Price_dist)
+        fr_vol_1=frequency_inside(Volume_stats_1["Media"]-value_zone_width*Volume_stats_1["Std"],Volume_stats_1["Media"]+value_zone_width*Volume_stats_1["Std"],Price_dist)
 
         #Sesion actual -2 dia entorno de valor
         POI_df_2 = self.period_study(Datetime-timedelta(days=2),n=n).copy()
@@ -804,8 +820,14 @@ class RN_study:
         Volume_stats_2=stats_setion_Series(Price_dist_2)
         fr_vol_2=frequency_inside(Volume_stats_2["Media"]-Volume_stats_2["Std"],Volume_stats_2["Media"]+Volume_stats_2["Std"],Price_dist)
 
-        #Calculo de las k
-        ks =calculo_k_medio(POI_df,300,Weigthed_mean,Std)
+        #Calculo de las k primeras instancias de la sesion 
+        POI_df_early_ks=self.period_study(Datetime,n=1).copy()
+        bins = len(POI_df_early_ks)-1
+        early_ks =calculo_k_medio(POI_df_early_ks,bins,Weigthed_mean,Std,False)
+
+        #Calculo de las k sesion completa
+        bins = len(POI_df)-1
+        ks =calculo_k_medio(POI_df,bins,Weigthed_mean,Std)
      
         #Derivado de Fecha
         self.traning_df.loc[indexDateTime,f" {Sesion} - week"] = get_week(Datetime.day)
@@ -814,32 +836,58 @@ class RN_study:
         #No Derivado de Fecha
         self.traning_df.loc[indexDateTime,f" {Sesion} - Open Price"] = Po
         self.traning_df.loc[indexDateTime,f" {Sesion} - Weigthed Mean"] = Weigthed_mean
-        self.traning_df.loc[indexDateTime,f" {Sesion} - Upper limmit Value Zone"] = Weigthed_mean + 1*Std
-        self.traning_df.loc[indexDateTime,f" {Sesion} - Lower limmit Value Zone"] = Weigthed_mean - 1*Std
+        self.traning_df.loc[indexDateTime,f" {Sesion} - Upper limmit Value Zone"] = Weigthed_mean + value_zone_width*Std
+        self.traning_df.loc[indexDateTime,f" {Sesion} - Lower limmit Value Zone"] = Weigthed_mean - value_zone_width*Std
         self.traning_df.loc[indexDateTime,f" {Sesion} - % Frecuency inside Sesion Value Zone -1"] = fr_vol_1*100
         self.traning_df.loc[indexDateTime,f" {Sesion} - % Frecuency inside Sesion Value Zone -2"] = fr_vol_2*100
         self.traning_df.loc[indexDateTime,f" {Sesion} - Std Weigthed"] = Std
         self.traning_df.loc[indexDateTime,f" {Sesion} - Bids Acumulated"] = Bids_acum
-        self.traning_df.loc[indexDateTime,f" {Sesion} - Asks Acumulated"] = Asks_acum
+        self.traning_df.loc[indexDateTime,f" {Sesion} - Asks Acumulated"] = Asks_acum 
+        self.traning_df.loc[indexDateTime,f" {Sesion} - Num Trades Acumulated"] = Num_trades_acum
 
-        self.traning_df.loc[indexDateTime,f" {Sesion} - k+ Movil Mean"] = ks[' k+ Movil']
-        self.traning_df.loc[indexDateTime,f" {Sesion} - k- Movil Mean"] = ks[' k- Movil']
-        self.traning_df.loc[indexDateTime,f" {Sesion} - k+ Fixed Mean"] = ks[' k+ Fixed']
-        self.traning_df.loc[indexDateTime,f" {Sesion} - k- Fixed Mean"] = ks[' k- Fixed']
+        # Atributos de K para la primera hora de la sesion  
+        self.traning_df.loc[indexDateTime,f" {Sesion} - Early k+ Movil Mean"] = early_ks[' k+ Movil']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - Early k- Movil Mean"] = early_ks[' k- Movil']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - Early k+ Fixed Mean"] = early_ks[' k+ Fixed']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - Early k- Fixed Mean"] = early_ks[' k- Fixed']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - Early k Movil Max"] = early_ks[' Max k Movil']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - Early k Movil Min"] = early_ks[' Min k Movil']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - Early k Fixed Max"] = early_ks[' Max k Fixed']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - Early k Fixed Min"] = early_ks[' Min k Fixed']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - Early Bids Over k+ Movil"] = early_ks[' Bids Over k+ Movil']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - Early Asks Over k+ Movil"] = early_ks[' Asks Over k+ Movil']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - Early Num Trades Over k+ Movil"] = early_ks[' Num Trades Over k+ Movil']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - Early Bids Below k- Movil"] = early_ks[' Bids Below k- Movil']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - Early Asks Below k- Movil"] = early_ks[' Asks Below k- Movil']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - Early Num Trades Below k- Movil"] = early_ks[' Num Trades Below k- Movil']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - Early Bids Over k+ Fixed"] = early_ks[' Bids Over k+ Fixed']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - Early Asks Over k+ Fixed"] = early_ks[' Asks Over k+ Fixed']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - Early Num Trades Over k+ Fixed"] = early_ks[' Num Trades Over k+ Fixed']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - Early Bids Below k- Fixed"] = early_ks[' Bids Below k- Fixed']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - Early Asks Below k- Fixed"] = early_ks[' Asks Below k- Fixed']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - Early Num Trades Below k- Fixed"] = early_ks[' Num Trades Below k- Fixed']
 
-        self.traning_df.loc[indexDateTime,f" {Sesion} - k Movil Max"] = ks[' Max k Movil']
-        self.traning_df.loc[indexDateTime,f" {Sesion} - k Movil Min"] = ks[' Min k Movil']
-        self.traning_df.loc[indexDateTime,f" {Sesion} - k Fixed Max"] = ks[' Max k Fixed']
-        self.traning_df.loc[indexDateTime,f" {Sesion} - k Fixed Min"] = ks[' Min k Fixed']
-        
-        self.traning_df.loc[indexDateTime,f" {Sesion} - Bids Over k+ Movil"] = ks[' Bids Over k+ Movil']
-        self.traning_df.loc[indexDateTime,f" {Sesion} - Asks Over k+ Movil"] = ks[' Asks Over k+ Movil']
-        self.traning_df.loc[indexDateTime,f" {Sesion} - Bids Below k- Movil"] = ks[' Bids Below k- Movil']
-        self.traning_df.loc[indexDateTime,f" {Sesion} - Asks Below k- Movil"] = ks[' Asks Below k- Movil']
-        self.traning_df.loc[indexDateTime,f" {Sesion} - Bids Over k+ Fixed"] = ks[' Bids Over k+ Fixed']
-        self.traning_df.loc[indexDateTime,f" {Sesion} - Asks Over k+ Fixed"] = ks[' Asks Over k+ Fixed']
-        self.traning_df.loc[indexDateTime,f" {Sesion} - Bids Below k- Fixed"] = ks[' Bids Below k- Fixed']
-        self.traning_df.loc[indexDateTime,f" {Sesion} - Asks Below k- Fixed"] = ks[' Asks Below k- Fixed']
+        # Atributos de K para la sesion completa 
+        self.traning_df.loc[indexDateTime,f" {Sesion} - All k+ Movil Mean"] = ks[' k+ Movil']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - All k- Movil Mean"] = ks[' k- Movil']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - All k+ Fixed Mean"] = ks[' k+ Fixed']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - All k- Fixed Mean"] = ks[' k- Fixed']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - All k Movil Max"] = ks[' Max k Movil']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - All k Movil Min"] = ks[' Min k Movil']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - All k Fixed Max"] = ks[' Max k Fixed']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - All k Fixed Min"] = ks[' Min k Fixed']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - All Bids Over k+ Movil"] = ks[' Bids Over k+ Movil']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - All Asks Over k+ Movil"] = ks[' Asks Over k+ Movil']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - All Num Trades Over k+ Movil"] = ks[' Num Trades Over k+ Movil']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - All Bids Below k- Movil"] = ks[' Bids Below k- Movil']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - All Asks Below k- Movil"] = ks[' Asks Below k- Movil']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - All Num Trades Below k- Movil"] = ks[' Num Trades Below k- Movil']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - All Bids Over k+ Fixed"] = ks[' Bids Over k+ Fixed']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - All Asks Over k+ Fixed"] = ks[' Asks Over k+ Fixed']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - All Num Trades Over k+ Fixed"] = ks[' Num Trades Over k+ Fixed']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - All Bids Below k- Fixed"] = ks[' Bids Below k- Fixed']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - All Asks Below k- Fixed"] = ks[' Asks Below k- Fixed']
+        self.traning_df.loc[indexDateTime,f" {Sesion} - All Num Trades Below k- Fixed"] = ks[' Num Trades Below k- Fixed']
         
         if Tl<Th: # Primer POI = Low
             #Derivado de Fecha
@@ -847,9 +895,9 @@ class RN_study:
             self.traning_df.loc[indexDateTime,f" {Sesion} - Var Segs POI1-POI2"] = (Th-Tl).total_seconds()
             self.traning_df.loc[indexDateTime,f" {Sesion} - Var Segs POI2-Close"] = (Tc-Th).total_seconds()
             #No Derivado de Fecha
-            self.traning_df.loc[indexDateTime,f" {Sesion} - Var Pips Open-POI1"] = ((Pl-Po)*10000)  # -
-            self.traning_df.loc[indexDateTime,f" {Sesion} - Var Pips POI1-POI2"] = ((Ph-Pl)*10000)  # +
-            self.traning_df.loc[indexDateTime,f" {Sesion} - Var Pips POI2-Close"] = ((Pc-Ph)*10000) # -
+            self.traning_df.loc[indexDateTime,f" {Sesion} - Var Pips Open-POI1"] = ((Pl-Po)*10000)  
+            self.traning_df.loc[indexDateTime,f" {Sesion} - Var Pips POI1-POI2"] = ((Ph-Pl)*10000)  
+            self.traning_df.loc[indexDateTime,f" {Sesion} - Var Pips POI2-Close"] = ((Pc-Ph)*10000) 
 
         else: # Primer POI = High
             #Derivado de Fecha
@@ -857,9 +905,9 @@ class RN_study:
             self.traning_df.loc[indexDateTime,f" {Sesion} - Var Segs POI1-POI2"] = (Tl-Th).total_seconds()
             self.traning_df.loc[indexDateTime,f" {Sesion} - Var Segs POI2-Close"] = (Tc-Tl).total_seconds()
             #No Derivado de Fecha
-            self.traning_df.loc[indexDateTime,f" {Sesion} - Var Pips Open-POI1"] = ((Ph-Po)*10000)  # +
-            self.traning_df.loc[indexDateTime,f" {Sesion} - Var Pips POI1-POI2"] = ((Pl-Ph)*10000)  # -
-            self.traning_df.loc[indexDateTime,f" {Sesion} - Var Pips POI2-Close"] = ((Pc-Pl)*10000) # +
+            self.traning_df.loc[indexDateTime,f" {Sesion} - Var Pips Open-POI1"] = ((Ph-Po)*10000)  
+            self.traning_df.loc[indexDateTime,f" {Sesion} - Var Pips POI1-POI2"] = ((Pl-Ph)*10000)  
+            self.traning_df.loc[indexDateTime,f" {Sesion} - Var Pips POI2-Close"] = ((Pc-Pl)*10000) 
 
 
 
@@ -875,11 +923,11 @@ class RN_study:
 
         if START.hour == P1:
 
-            # Sidney para para raul
+            # Sidney para raul
             self.POIset(START,S1,"Sidney", indexDateTime)
             START=START+timedelta(hours=S1)
 
-            # Tokio para para raul
+            # Tokio para raul
             self.POIset(START,S2,"Tokio", indexDateTime)
             START=START+timedelta(hours=S2)
 
@@ -887,7 +935,7 @@ class RN_study:
             self.POIset(START,S3,"Londres", indexDateTime)
             START=START+timedelta(hours=S3)
 
-            # NY para para raul
+            # NY para raul
             self.POIset(START,S4,"Ny", indexDateTime)
             START=START+timedelta(hours=S4)
             
