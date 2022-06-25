@@ -746,7 +746,19 @@ def calculo_k_medio (df_in, bins, Weighted_mean_fixed, Std_fixed, full_session=T
 
 
 class RN_study:
+    """ideas para conseguir una sola instancia
+    Ejecutar automaticamente si se atiene acceso a una api y enviar de una a canales de difusion (Discord, WhatsApp, Telegram)
 
+    Se da la fecha de inicio de la sesion Instance Date
+
+    Se solicita la informacion ya sea por api o manual 
+
+    Pila finita para data necesaria (guardar en archivo csv)(determinar tamano de pila)
+
+    Guardar data completa por un perdiodo de tiempo a determinar automaticamente
+    
+
+    """
     def __init__(self,path="", sep=","):
        
         self.df = pd.read_csv(path, sep=sep)
