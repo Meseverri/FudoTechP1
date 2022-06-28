@@ -1,0 +1,93 @@
+//@version=5
+indicator("LualdiAdvisorsAnchoredVWAP", shorttitle="LualdiAdvisorsAnchoredVWAP", overlay=true)
+
+startCalculationDate = input.time(timestamp("24 Jun 2022"), "Start Calculation High", confirm=true)
+vws=input.source(low, "Source")
+var t = input.float(10, "transparency", minval=0, maxval=100)
+
+
+///////////////////////////////////////////////////////////////////////////////EMA triggers VWAP start points
+
+trig=ta.ema(vws, 1)
+
+///////////////////////////////////////////////////////////////////////////////VWAP1
+
+vwap_calc() =>
+    var srcVolArray = array.new_float(na)
+    var volArray = array.new_float(na)
+    if startCalculationDate <= time
+        array.push(srcVolArray, vws*volume)
+        array.push(volArray, volume)
+    else
+        array.clear(srcVolArray), array.clear(volArray)
+    array.sum(srcVolArray)/array.sum(volArray)
+vh = vwap_calc()
+
+///////////////////////////////////////////////////////////////////////////////VWAP2
+
+start = ta.crossover(trig,vh) or ta.crossunder(trig,vh)
+
+sumSrc = vws * volume
+sumVol = volume
+sumSrc := start ? sumSrc : sumSrc + sumSrc[1]
+sumVol := start ? sumVol : sumVol + sumVol[1]
+
+out1=sumSrc / sumVol
+
+///////////////////////////////////////////////////////////////////////////////VWAP3
+
+start2 = ta.crossover(trig,out1) or ta.crossunder(trig,out1)
+
+sumSrc2 = vws * volume
+sumVol2 = volume
+sumSrc2 := start2 ? sumSrc2 : sumSrc2 + sumSrc2[1]
+sumVol2 := start2 ? sumVol2 : sumVol2 + sumVol2[1]
+
+out2=sumSrc2 / sumVol2
+
+///////////////////////////////////////////////////////////////////////////////VWAP4
+
+start3 = ta.crossover(trig,out2) or ta.crossunder(trig,out2)
+
+sumSrc3 = vws * volume
+sumVol3 = volume
+sumSrc3 := start3 ? sumSrc3 : sumSrc3 + sumSrc3[1]
+sumVol3 := start3 ? sumVol3 : sumVol3 + sumVol3[1]
+
+out3=sumSrc3 / sumVol3
+
+///////////////////////////////////////////////////////////////////////////////VWAP5
+
+start4 = ta.crossover(trig,out3) or ta.crossunder(trig,out3)
+
+sumSrc4 = vws * volume
+sumVol4 = volume
+sumSrc4 := start4 ? sumSrc4 : sumSrc4 + sumSrc4[1]
+sumVol4 := start4 ? sumVol4 : sumVol4 + sumVol4[1]
+
+out4=sumSrc4 / sumVol4
+
+///////////////////////////////////////////////////////////////////////////////VWAP6
+
+start5 = ta.crossover(trig,out4) or ta.crossunder(trig,out4)
+
+sumSrc5 = vws * volume
+sumVol5 = volume
+sumSrc5 := start5 ? sumSrc5 : sumSrc5 + sumSrc5[1]
+sumVol5 := start5 ? sumVol5 : sumVol5 + sumVol5[1]
+
+out5=sumSrc5 / sumVol5
+
+///////////////////////////////////////////////////////////////////////////////PLOTS
+
+
+plot(vh, "VWAP", linewidth=3, color=color.new(color.aqua, t))
+plot(out1, "VWAP 2", linewidth=1, color=color.new(color.gray, t))
+plot(out2, "VWAP 3", linewidth=1, color=color.new(color.gray, t))
+plot(out3, "VWAP 4", linewidth=1, color=color.new(color.gray, t))
+plot(out4, "VWAP 5", linewidth=1, color=color.new(color.gray, t))
+plot(out5, "VWAP 6", linewidth=1, color=color.new(color.gray, t))
+
+
+
+

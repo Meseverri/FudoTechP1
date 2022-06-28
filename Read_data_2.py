@@ -741,6 +741,18 @@ def calculo_k_medio (df_in, bins, Weighted_mean_fixed, Std_fixed, full_session=T
     return k_
 
 
+#LAGG FOR DATAFRAME
+def laggDataframe(windowSize, originalDataframe):
+    dataframeCopy = originalDataframe.copy()
+    for window in range(1, windowSize+1):
+        shifted = originalDataframe.shift(window)
+        shifted.columns = [x + " - Shifted " + str(window) for x in originalDataframe.columns]
+        dataframeCopy = pd.concat((dataframeCopy, shifted), axis=1)
+    dataframeCopy = dataframeCopy.dropna()
+    return dataframeCopy
+
+
+
 
     
 
@@ -751,7 +763,7 @@ class RN_study:
 
     Se da la fecha de inicio de la sesion Instance Date
 
-    Se solicita la informacion ya sea por api o manual 
+    Se solicita la informacion ya sea por api o manual de justo el dia que acaba de cerrar
 
     Pila finita para data necesaria (guardar en archivo csv)(determinar tamano de pila)
 
@@ -760,7 +772,6 @@ class RN_study:
 
     """
     def __init__(self,path="", sep=","):
-       
         self.df = pd.read_csv(path, sep=sep)
         self.df[" DateTime"]=pd.to_datetime(self.df["Date"]+self.df[" Time"])
         self.df["Date"]=pd.to_datetime(self.df["Date"])
@@ -786,14 +797,20 @@ class RN_study:
             except IndexError:
                 pass
 
+
+        self.traning_df.dropna(inplace=True)
+        
+        #Shift data
+        self.traning_df = laggDataframe(5, self.traning_df)
+
         #Class to Predict
         Shifted_tr_df = self.traning_df.shift(periods=-1)
         self.traning_df["Class to Predict-Close Var"] = (Shifted_tr_df[" Open"] - self.traning_df[" Open"])*10000
-        
 
-
-        self.traning_df.dropna().to_csv("trainingRN1.csv", ",")
+        self.traning_df.to_csv("trainingRN1.csv", "\t",decimal=",")
         # self.traning_df.to_csv("trainingRN1_SinDrop.csv", ",")
+
+    # def get_all_traningSet():
 
 
     def alpha(p,p0,p1):
