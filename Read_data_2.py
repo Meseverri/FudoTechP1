@@ -806,6 +806,7 @@ class RN_study:
         #Class to Predict
         Shifted_tr_df = self.traning_df.shift(periods=-1)
         self.traning_df["Class to Predict-Close Var"] = (Shifted_tr_df[" Open"] - self.traning_df[" Open"])*10000
+        self.traning_df.dropna(inplace=True)
 
         self.traning_df.to_csv("trainingRN1.csv", "\t",decimal=",")
         # self.traning_df.to_csv("trainingRN1_SinDrop.csv", ",")
