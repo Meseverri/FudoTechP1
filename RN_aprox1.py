@@ -22,9 +22,9 @@ Derivados de Fechas para la instancia actual:
 
 Atributos de n sesiones hacia atras con las que la instancia actual esta reaccionando:
     Derivados de Fechas para cada sesion:
-        -Week [Primera semana ,Segunda semana ,Tercera semana,cuarta semana] +
-        -Dia de la semana (nominal lunes (0), martes (1), etc) +
-        -Hora de apertura formato 24h +
+        -Week [Primera semana ,Segunda semana ,Tercera semana,cuarta semana] + -
+        -Dia de la semana (nominal lunes (0), martes (1), etc) + -
+        -Hora de apertura formato 24h + -
         -Variacion en segundos desde apertura hasta primer POI +
         -Variacion en segundos del primer POI al segundo POI +
         -Variacion en segundos del segundo POI al close +

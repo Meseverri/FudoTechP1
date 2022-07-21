@@ -34,9 +34,10 @@ start=datetime.now()
 try:
 
     training_df = pd.read_csv("../trainingRN1.csv", sep="\t", decimal=",")
-    training_df.dropna(inplace=True)
+    training_df.dropna(inplace=True)#quitar cuando cambiemos los datos
     norm = minmax_norm(training_df.iloc[:,1:])
     training_df = norm.minmax_norm_df
+    training_df.dropna(inplace=True, axis=1)#quitar cuando cambiemos los datos
     X_train, X_test, y_train, y_test = train_test_split(training_df.iloc[:,1:-1],training_df.iloc[:,-1:], test_size=0.2, shuffle=False)
     input_shape = (X_train.shape [1] ,) 
 
@@ -47,23 +48,32 @@ try:
     print(input_shape)
 
     model = Sequential()
-    model.add(Dense(50, input_shape=input_shape, activation="relu"))
+    model.add(Dense(80, input_shape=input_shape, activation="relu"))
+    model.add(Dropout(0.1))
+    model.add(Dense(40, activation="relu"))
+    model.add(Dropout(0.1))
+    model.add(Dense(30, activation="relu"))
     model.add(Dropout(0.1))
     model.add(Dense(20, activation="relu"))
     model.add(Dropout(0.1))
-    model.add(Dense(1, activation="relu"))
+    model.add(Dense(10, activation="relu"))
+    model.add(Dropout(0.1))
+    model.add(Dense(1, activation="sigmoid"))
     print(model.summary())
-    # opt = tf.keras.optimizers.Adam(learning_rate=1e-3, decay=1e-5)
-    model.compile(loss='mean_squared_error', optimizer=tf.keras.optimizers.SGD(learning_rate=0.3, momentum=0.01) , metrics=['accuracy'])
-    historico = model.fit(X_train, y_train, epochs=300, batch_size=1, verbose=0, validation_split=0.2, shuffle=False)
+    opt = tf.keras.optimizers.Adam(learning_rate=1e-4)
+    # tf.keras.optimizers.SGD(learning_rate=0.3, momentum=0.01)
+    model.compile(loss='mean_absolute_error', optimizer=opt, metrics=['mean_squared_error'])
+    historico = model.fit(X_train, y_train, epochs=300, batch_size=1, verbose=1, validation_split=0.2, shuffle=False)
 
-    ## plots de evolución de loss 
-    plt.plot(historico.history['loss']) 
-    plt.title('model loss') 
+    ## plots de evolución de loss y accuracy
+    plt.plot(historico.history['loss'])
+    plt.plot(historico.history['val_loss'])
+    plt.title('model loss')
     plt.ylabel('loss')
     plt.xlabel('epoch')
-    plt.legend(['train', 'val'], loc='upper left') 
+    plt.legend(['train', 'val'], loc='upper left')
     plt.show()
+
 
 except Exception as e:
     playsound('../error.mp3',True)
